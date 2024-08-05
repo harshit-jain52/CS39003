@@ -1,0 +1,203 @@
+\documentclass[12pt,fleqn,a4paper]{article}
+\usepackage[condensed]{tgheros}\renewcommand*\familydefault{\sfdefault}
+%\usepackage{times}
+\usepackage{mathptmx}
+\usepackage{color,colordef}
+
+%%% Set text are: \textwidth, \textheight, \topmargin, \oddsidemargin, and \evensidemargin
+\textheight=10.2in\topmargin=-1.0in
+\textwidth=6.5in\oddsidemargin=-0.1in\evensidemargin=\oddsidemargin
+
+%%% Set spacings
+\parskip=2mm plus 1mm minus 1mm
+\parindent=0pt
+
+%%% Customized definitions
+\def\dquote{{\tt\char34}}
+\def\${{\tt\char36}}
+\def\bs{{\tt\char92}}
+\def\^{{\tt\char94}}
+\def\_{{\tt\char95}}
+\def\tilde{{\tt\char126}}
+
+\begin{document}
+\begin{center}
+\color{Navy}\bf
+CS39003 Compilers Laboratory, Autumn 2024--2025\\
+Assignment No: 1\\
+Date: 05-Aug-2024
+
+\hrulefill
+\end{center}
+
+\vspace*{-1.5\bigskipamount}
+\begin{center}
+\bf\color{red}Using LEX on \LaTeX\ files
+\end{center}
+\vspace*{-\bigskipamount}
+
+\bigskip
+\LaTeX\ is a typesetting utility written by Leslie Lamport. It is basically a macro
+package designed on top of Donald Knuth's \TeX\ typesetting system. In this
+assignment, you are required to write a lex program and a C/C++ program to identify some
+patterns (commands, environments, math formulas, and comments) in \LaTeX\ files.
+The input to your program will be a \LaTeX\ file, and the output will be the printing
+of some statistics (explained near the end) associated with these patterns in the input
+file.
+
+A \TeX\ or \LaTeX\ file is a text file that stores the instructions on the text,
+the mathematical formulas, the tables, the figures,
+and so on, that you want to typeset. Standard text is written as it is. Special
+formatting requires using commands (also called macros). \LaTeX\ additionally
+provides some environments for handling a set of specialized items in the
+document.
+
+The \LaTeX\ patterns relevant to this assignment are explained in detail now.
+
+
+
+\hrulefill
+
+\begin{description}
+\item[\LaTeX~commands]
+There are three types of commands based on the characters used to define them.
+\begin{itemize}
+\item First, there is an active character \tilde\ which, in itself, is a command
+(its default meaning is a single space where a line cannot be broken).
+
+Other commands begin with the special character \bs (backward slash).
+\item If the command name
+consists only of alphabetic letters, then the \bs\ will be followed by
+one of more of the letters a--z and A--Z. Some examples are \bs a, \bs abcd,
+\bs aone, \bs aiii. \LaTeX\ commands are case-sensitive. For example, \bs abc,
+\bs Abc, and \bs ABC are considered different commands. Notice that such
+command names must contain alphabetic letters only. For example, in
+\bs abc12 or \bs abc\_def, we have the command \bs abc. What follows is
+not part of the command name.
+\item Any character other than the alphabetic letters or \tilde\ followed
+by \bs\ gives a single-character command. For example, you can have
+commands like \bs\_, \bs1, \bs\bs, \bs\$, and so on, whereas in \bs\dquote u
+or \bs\dquote\dquote, the command is \bs\dquote.
+\end{itemize}
+
+\item[\LaTeX~environments]
+A \LaTeX\ environment begins with the special command \bs begin\{env\_name\}
+and ends with \bs end\{env\_name\}. For example, for typesetting right-justified
+text, one may use the flushright environment as below.
+
+\qquad \bs begin\{flushright\}\\\mbox{}%
+\qquad Write your right-justified text here.\\\mbox{}%
+\qquad \bs end\{flushright\}
+
+You can have spaces between \bs begin or \bs end, and the brace-delimited
+environment name, but spaces inside the braces are not permitted.
+
+\item[Inline math formulas]
+An inline mathematical formula is written between a pair of dollars.
+For example, the Van~der~Waals equation $\left(P+\frac{\alpha}{V^2}\right)
+(V-\beta)=RT$ can be typeset as follows.
+
+\qquad\$\bs left(P+\bs frac\{\bs alpha\}\{V\^2\}\bs right)(V-\bs beta)=RT\$
+
+Note that the character \$ toggles the math mode. Inside the math mode,
+there may be commands (like \bs left or \bs frac). You need to locate these
+commands as well. Note also that a math-mode formula may span across
+multiple lines, so you must not search for the terminating \$ in the
+same line as the beginning \$.
+
+\item[Displayed math formulas]
+If you want to show your mathematical formulas in separate lines,
+you can use a pair of \$\$ in the toggle mode, or the matching
+commands \bs[ and \bs]. For example,
+
+\qquad \$\$\bs left(P+\bs frac\{\bs alpha\}\{V\^2\}\bs right)(V-\bs beta)=RT\$\$
+
+produces
+% Display using $$
+$$
+\left(P+\frac{\alpha}{V^2}\right) (V-\beta)=RT
+$$
+
+whereas
+
+\qquad \bs[\\\mbox{}%
+\qquad ~~~~\bs left(P+\bs frac\{\bs alpha\}\{V\^2\}\bs right)(V-\bs beta)=RT\\\mbox{}%
+\qquad \bs]
+
+produces
+% Display using \[ and \]
+\[
+\left(P+\frac{\alpha}{V^2}\right) (V-\beta)=RT
+\]
+
+One may write displayed equations across multiple lines in \LaTeX\ files,
+so the begin and the end may appear in two different lines.
+
+\item[Handling comments]
+\LaTeX~does not support multi-line comments. If an (unescaped) \% appears anywhere
+in a line, the rest of the line (including the new-line character at the end) is
+ignored. Your lex program must ignore whatever appears in a comment. For example,
+commands or math-mode toggles inside comments must be ignored. The
+literal \% is printed by \bs\%, and this is not to be treated as a comment.
+
+\item[Ignoring other text]
+Your lex program must ignore texts containing none of the above patterns,
+and will print nothing against these.
+\end{description}
+
+\vspace*{-\bigskipamount}
+\hrulefill
+
+\bigskip
+{\bf Your LEX program}
+
+Write appropriate regular expressions and actions for detecting the
+\LaTeX\ patterns as mentioned above. You may use suitable \#define's and
+global variables at the beginning of your lex program. Compile the lex code
+with {\tt lex} or {\tt flex}. This will generate the C file {\tt lex.yy.c}
+as usual.
+
+\bigskip
+{\bf Your C/C++ program}
+
+{\tt\#include "lex.yy.c"} in your C/C++ program (henceforth called {\it your
+C program}). You may use the compilation flag {\tt-ll} to avoid the error caused by
+{\tt yywrap()}, or define the function yourself.
+
+Inside your C program, maintain all the commands and environment names that
+will be encountered during a run. Use a data structure of your own. Any data
+structure to store and search strings will do. But you must not use any
+STL data structure. Use one table to store the commands, and another table
+to store only the environment names (without the \bs begin or \bs end, and
+the braces). Against each string (command or environment name), store
+a count of how many times the item is used in the \LaTeX\ source.
+There is no need to keep the tables sorted (with respect to names or
+the occurrence counts or first/last occurrence instants).
+
+Also, keep two separate counts: one for storing the number of inline
+mathematical formulas, and the other for storing the number of displayed
+mathematical formulas.
+
+At the end, print only the overall statistics (see the following sample output).
+Without these, your program must print nothing.
+
+\bigskip
+{\bf What to submit}
+
+Submit two files: Your lex file (like {\tt latex.l}) and your C file (like
+{\tt procltx.c} or {\tt procltx.cpp}).
+
+\newpage
+{\bf Sample output}
+
+The output on the \LaTeX\ file of this document follows.
+The occurrence counts are shown within parentheses.
+
+\begin{quote}
+\color{DarkGreen}\footnotesize
+\input A1sample.tex
+\end{quote}
+
+\vspace*{-\medskipamount}
+
+\end{document}
