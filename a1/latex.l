@@ -11,8 +11,8 @@
 LETTERS [A-Za-z]+
 SPECIAL [^A-Za-z]
 WS [ \t\n]
-ENVIRONMENT \\begin\{[{WS}]*{LETTERS}\}
-ENVEND \\end\{[{WS}]*{LETTERS}\}
+ENVIRONMENT \\begin{WS}*\{{LETTERS}\}
+ENVEND \\end{WS}*\{{LETTERS}\}
 COMMAND \~|\\{LETTERS}|\\{SPECIAL}
 DISPLAYED_MATH \$\$|\\\[|\\\]
 INLINE_MATH \$
