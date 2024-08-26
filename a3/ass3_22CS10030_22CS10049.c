@@ -89,6 +89,12 @@ keyWord keyWords[] = {
 
 const int keyWordCount = sizeof(keyWords) / sizeof(keyWord);
 
+void initKeywords(){
+    for (int i = 0; i < keyWordCount; i++){
+        keyWords[i].frequency=0;
+    }
+}
+
 void addKeyWord(char *word) {
     for (int i = 0; i < keyWordCount; i++) {
         if (strcmp(keyWords[i].word, word) == 0) {
@@ -100,7 +106,7 @@ void addKeyWord(char *word) {
 
 void printKeyWords() {
     for (int i = 0; i < keyWordCount; i++) {
-        printf("%s\t\t%d time(s)\n", keyWords[i].word, keyWords[i].frequency);
+        printf("%s -- %d time(s)\n", keyWords[i].word, keyWords[i].frequency);
     }
 }
 
@@ -129,7 +135,7 @@ constTable addConstant(constTable T, const char *word, int type) {
 
 void printConstants(constTable T) {
     while (T != NULL) {
-        printf("%s\t\t",T->word);
+        printf("%s -- ",T->word);
         if(T->type == INTEGER_CONSTANT)
             printf("INTEGER_CONSTANT\n");
         else if(T->type == FLOATING_CONSTANT)
@@ -251,7 +257,7 @@ symbolTable insertSymbolTable(symbolTable T, const char *word, int lineNum) {
 
 void printSymbolTable(symbolTable T) {
     while (T != NULL) {
-        printf("%s\t\t at line(s) ", T->word);
+        printf("%s -- at line(s) ", T->word);
         linked_list lineNums = T->lineNums;
         while (lineNums != NULL) {
             printf("%d ", lineNums->data);
@@ -269,14 +275,61 @@ void freeSymbolTable(symbolTable T) {
     free(T);
 }
 
+// Symbol Table for TinyC Compiler
+struct tinyC_{
+    constTable constants;
+    symbolTable identifiers;
+    symbolTable stringLiterals;
+    TrieNode* root_punctuators;
+};
+typedef struct tinyC_* tinyC_SymbolTable;
+
+tinyC_SymbolTable init_SymbolTable() {
+    tinyC_SymbolTable ST = (tinyC_SymbolTable)malloc(sizeof(struct tinyC_));
+    initKeywords();
+    ST->constants = NULL;
+    ST->identifiers = NULL;
+    ST->stringLiterals = NULL;
+    ST->root_punctuators = createNode();
+    return ST;
+}
+
+void printTinyCTable(tinyC_SymbolTable T){
+    printf("\n1. All Keywords:\n");
+    printKeyWords();
+
+    printf("\n2. Identifiers defined/declared:\n");
+    printSymbolTable(T->identifiers);
+
+    printf("\n3. Constants:\n");
+    printConstants(T->constants);
+
+    printf("\n4. String Literals:\n");
+    printSymbolTable(T->stringLiterals);
+
+    printf("\n5. Punctuators used:\n");
+    printPunctuators(T->root_punctuators);
+}
+
+void free_TC_ST(tinyC_SymbolTable T) {
+    if(T == NULL) {
+        return;
+    }
+    freeConstants(T->constants);
+    freeSymbolTable(T->identifiers);
+    freeSymbolTable(T->stringLiterals);
+    freeTrie(T->root_punctuators);
+    free(T);
+    return;
+}
+
+// Driver
 int main(int argc, char *argv[]) {
 
-    printf("Tokenizing the input file...\n\n");
-    constTable constants = NULL;
-    symbolTable identifiers = NULL;
-    symbolTable stringLiterals = NULL;
-    TrieNode* root_punctuators = createNode();
+    // Initialize Symbol Table
+    tinyC_SymbolTable TINYC_ST = init_SymbolTable();
 
+    printf("Tokenizing the input file...\n\n");
     int next_token = 0;
 
     while (next_token = yylex())
@@ -289,27 +342,27 @@ int main(int argc, char *argv[]) {
             break;
         case IDENTIFIER:
             printf("<IDENTIFIER,%s>\n", yytext);
-            identifiers = insertSymbolTable(identifiers, yytext, _yylineno_);
+            TINYC_ST->identifiers = insertSymbolTable(TINYC_ST->identifiers, yytext, _yylineno_);
             break;
         case FLOATING_CONSTANT:
             printf("<CONSTANT,%s>\n", yytext);
-            constants = addConstant(constants, yytext, FLOATING_CONSTANT);
+            TINYC_ST->constants = addConstant(TINYC_ST->constants, yytext, FLOATING_CONSTANT);
             break;
         case INTEGER_CONSTANT:
             printf("<CONSTANT,%s>\n", yytext);
-            constants = addConstant(constants, yytext, INTEGER_CONSTANT);
+            TINYC_ST->constants = addConstant(TINYC_ST->constants, yytext, INTEGER_CONSTANT);
             break;
         case CHAR_CONSTANT:
             printf("<CONSTANT,%s>\n", yytext);
-            constants = addConstant(constants, yytext, CHAR_CONSTANT);
+            TINYC_ST->constants = addConstant(TINYC_ST->constants, yytext, CHAR_CONSTANT);
             break;
         case STRING_LITERAL:
             printf("<STRING_LITERAL,%s>\n", yytext);
-            stringLiterals = insertSymbolTable(stringLiterals, yytext, _yylineno_);
+            TINYC_ST->stringLiterals = insertSymbolTable(TINYC_ST->stringLiterals, yytext, _yylineno_);
             break;
         case PUNCTUATOR:
             printf("<PUNCTUATOR,%s>\n", yytext);
-            insert(root_punctuators, yytext);
+            insert(TINYC_ST->root_punctuators, yytext);
             break;
         case COMMENT:
             _yylineno_ += count_newlines(yytext);
@@ -323,25 +376,11 @@ int main(int argc, char *argv[]) {
 
     printf("\n\nTokenization complete.\n\nPrinting the symbol tables:\n");
 
-    printf("\n1. All Keywords:\n");
-    printKeyWords();
+    // Print Symbol Table
+    printTinyCTable(TINYC_ST);
 
-    printf("\n2. Identifiers defined/declared:\n");
-    printSymbolTable(identifiers);
-
-    printf("\n3. Constants:\n");
-    printConstants(constants);
-
-    printf("\n4. String Literals:\n");
-    printSymbolTable(stringLiterals);
-
-    printf("\n5. Punctuators used:\n");
-    printPunctuators(root_punctuators);
-
-
-    // Memory deallocation
-    freeConstants(constants);
-    freeSymbolTable(identifiers);
-    freeSymbolTable(stringLiterals);
-    freeTrie(root_punctuators);
+    // Memory Deallocation
+    free_TC_ST(TINYC_ST);
+    
+    return 0;
 }

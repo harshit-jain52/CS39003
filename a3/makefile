@@ -1,3 +1,4 @@
+CC=gcc
 BASE=ass3_22CS10030_22CS10049
 LEX_FILE=$(BASE).l
 C_FILE=$(BASE).c
@@ -9,7 +10,7 @@ $(OUTPUT_FILE): $(OUT_FILE) $(TEST_FILE)
 	./$(OUT_FILE) < $(TEST_FILE) > $(OUTPUT_FILE)
 
 $(OUT_FILE): lex.yy.c $(C_FILE)
-	gcc lex.yy.c $(C_FILE) -o $(OUT_FILE) -lfl
+	$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
 
 lex.yy.c: $(LEX_FILE)
 	lex $(LEX_FILE)
