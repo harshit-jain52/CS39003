@@ -1,6 +1,7 @@
 /* Test File */
 
 #include <stdio.h>
+#include <stdarg.h>
 
 extern int yylineno;
 const long INF = 1e9;
@@ -22,8 +23,24 @@ inline void newline(){
     printf("%s\n", str);
 }
 
-enum week_ { Mon = 1, Tue, Wed, Thur, Fri, Sat, Sun };
+enum week_ { Mon = 1, Tue};
 typedef enum week_ week;
+
+int LargestNumber(int n, ...)
+{
+    va_list ptr;
+    va_start(ptr, n);
+   
+    int max = va_arg(ptr, int);
+ 
+    for (int i = 0; i < n-1; i++) {
+        int temp = va_arg(ptr, int);
+        max = temp > max ? temp : max;
+    }
+
+    va_end(ptr); 
+    return max;
+}
 
 int main()
 {
@@ -37,7 +54,6 @@ int main()
     float f4 = 12.34e+2;
     float f5 = .34E2;
     float f6 = 1234e-2;
-    float f7 = 1234e2;
     double d1 = 12.34;
     char c1 = '$';
     char c2 = '\r';
@@ -53,35 +69,10 @@ int main()
     switch(day){
         case Mon: printf("Monday\n"); break;
         case Tue: printf("Tuesday\n"); break;
-        case Wed: printf("Wednesday\n"); break;
-        case Thur: printf("Thursday\n"); break;
-        case Fri: printf("Friday\n"); break;
-        case Sat: printf("Saturday\n"); break;
-        case Sun: printf("Sunday\n"); break;
         default: printf("Invalid day\n");
     }
 
-    /*
-         *
-        * *
-       * * *
-      * * * *
-     * * * * *
-      PATTERN
-    */
-
-    // first loop to print all rows
-    for(int i=0; i<5; i++) {
-        // inner loop to print white spaces
-        for(int j=0; j<2*(5-i) - 1; j++) {
-            printf(" ");
-        }
-        // inner loop to print stars
-        for(int j=0; j<2*i + 1; j++) {
-            printf("*");
-        }
-        printf("\n");
-    }
+    printf("\n %d ", LargestNumber(3, 3, 4, 5));
 
     int iter = 0;
     do {

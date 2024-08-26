@@ -35,6 +35,7 @@ struct linked_node{
 typedef struct linked_node* linked_list;
 
 linked_list insertLL(int data, linked_list head) {
+    if(head!=NULL && head->data == data) return head;
     linked_list new_node = (linked_list)malloc(sizeof(struct linked_node));
     new_node->data = data;
     new_node->next = head;
@@ -106,7 +107,7 @@ void addKeyWord(char *word) {
 
 void printKeyWords() {
     for (int i = 0; i < keyWordCount; i++) {
-        printf("%s -- %d time(s)\n", keyWords[i].word, keyWords[i].frequency);
+        printf("\t%s -- %d time(s)\n", keyWords[i].word, keyWords[i].frequency);
     }
 }
 
@@ -135,7 +136,7 @@ constTable addConstant(constTable T, const char *word, int type) {
 
 void printConstants(constTable T) {
     while (T != NULL) {
-        printf("%s -- ",T->word);
+        printf("\t%s -- ",T->word);
         if(T->type == INTEGER_CONSTANT)
             printf("INTEGER_CONSTANT\n");
         else if(T->type == FLOATING_CONSTANT)
@@ -191,7 +192,7 @@ void printNames(TrieNode* node, char* punctuator_base, int depth) {
 
     if (node->isEndOfWord) {
         punctuator_base[depth] = '\0';
-        printf("\t%s -- appeared %d times\n", punctuator_base, node->frequency);
+        printf("\t%s -- appeared %d time(s)\n", punctuator_base, node->frequency);
     }
 
     for (int i = 0; i < ALPHABET_SIZE; i++) {
@@ -244,7 +245,7 @@ symbolTable insertSymbolTable(symbolTable T, const char *word, int lineNum) {
 
 void printSymbolTable(symbolTable T) {
     while (T != NULL) {
-        printf("%s -- at line(s) ", T->word);
+        printf("\t%s -- at line(s) ", T->word);
         linked_list lineNums = T->lineNums;
         while (lineNums != NULL) {
             printf("%d ", lineNums->data);
