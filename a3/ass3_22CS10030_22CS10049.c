@@ -156,6 +156,7 @@ void freeConstants(constTable T) {
 // Symbol Table for Punctuators (Trie implementation)
 typedef struct TrieNode {
     struct TrieNode* children[ALPHABET_SIZE];
+    int frequency;
     bool isEndOfWord;
 } TrieNode;
 const int punctuator_size = 4;
@@ -167,6 +168,7 @@ TrieNode* createNode()
     for (int i = 0; i < ALPHABET_SIZE; i++) {
         node->children[i] = NULL;
     }
+    node->frequency = 0;
     return node;
 }
 
@@ -181,30 +183,15 @@ void insert(TrieNode* root, const char* punctuator) {
         punctuator++;
     }
     node->isEndOfWord = true;
+    node->frequency++;
 }
-
-int search(TrieNode* root, const char* punctuator) {
-    TrieNode* node = root;
-    while (*punctuator) {
-        unsigned char index = (unsigned char)*punctuator;
-        if (node->children[index] == NULL) {
-            return 0;
-        }
-        node = node->children[index];
-        punctuator++;
-    }
-    if(node != NULL && node->isEndOfWord)
-        return 1;
-    return 0;
-}
-
 
 void printNames(TrieNode* node, char* punctuator_base, int depth) {
     if (node == NULL) return;
 
     if (node->isEndOfWord) {
         punctuator_base[depth] = '\0';
-        printf("---\t%s\n", punctuator_base);
+        printf("\t%s -- appeared %d times\n", punctuator_base, node->frequency);
     }
 
     for (int i = 0; i < ALPHABET_SIZE; i++) {
