@@ -57,7 +57,10 @@ int main()
     double d1 = 12.34;
     char c1 = '$';
     char c2 = '\r';
-
+    char c3 = 'x';
+    char c4 = ' ';
+    char c5 = '"';
+    char c6 = '\'';
     _Bool err = 1;  
 
     node* head = (node*)malloc(sizeof(node));
@@ -120,7 +123,6 @@ int main()
     }
     
     @
-
     exit:
     return 0;
 }
