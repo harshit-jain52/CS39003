@@ -31,8 +31,7 @@ FLOATING_CONSTANT       {FRACTIONAL_CONSTANT}{EXPONENT_PART}?|{DIGIT_SEQUENCE}{E
 
 ESCAPE_SEQ              \\['"?\\abfnrtv]
 C_CHAR                  [^'\\\n]|{ESCAPE_SEQ}
-C_CHAR_SEQ              {C_CHAR}+
-CHAR_CONSTANT           \'{C_CHAR_SEQ}\'
+CHAR_CONSTANT           \'{C_CHAR}\'
 
 S_CHAR                  [^"\\\n]|{ESCAPE_SEQ}
 S_CHAR_SEQ              {S_CHAR}+
