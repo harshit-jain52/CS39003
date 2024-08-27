@@ -61,6 +61,10 @@ int main()
     char c4 = ' ';
     char c5 = '"';
     char c6 = '\'';
+    char c7 = '\n';
+    char c8 = '';   // Invalid
+    char* str1 = "\"";
+    char* str2 = "";
     _Bool err = 1;  
 
     node* head = (node*)malloc(sizeof(node));
@@ -116,13 +120,14 @@ int main()
      // this is not a comment inside comment
     */
 
+    @ // Invalid
+    
     if(err) {
         goto exit;
     } else {
         printf("No error\n");
     }
     
-    @
     exit:
     return 0;
 }

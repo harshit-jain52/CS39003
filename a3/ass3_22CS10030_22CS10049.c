@@ -42,6 +42,12 @@ linked_list insertLL(int data, linked_list head) {
     return new_node;
 }
 
+void freeLL(linked_list head){
+    if(head==NULL) return;
+    freeLL(head->next);
+    free(head);
+}
+
 // Symbol Table for Keywords (Hardcode implementation of 37 keywords with their frequencies)
 typedef struct {
     char *word;
@@ -260,6 +266,7 @@ void freeSymbolTable(symbolTable T) {
     if (T == NULL) return;
     freeSymbolTable(T->next);
     free(T->word);
+    free(T->lineNums);
     free(T);
 }
 

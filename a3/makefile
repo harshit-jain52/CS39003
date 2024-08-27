@@ -6,7 +6,7 @@ OUT_FILE=$(BASE).out
 OUTPUT_FILE=$(BASE).output.txt
 TEST_FILE=$(BASE)_test.c
 
-$(OUTPUT_FILE): $(TEST_FILE)
+run:
 	@lex $(LEX_FILE)
 	@$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
 	./$(OUT_FILE) < $(TEST_FILE) > $(OUTPUT_FILE)
