@@ -9,10 +9,10 @@ TEST_FILE=$(BASE)_test.c
 $(OUTPUT_FILE): $(OUT_FILE) $(TEST_FILE)
 	./$(OUT_FILE) < $(TEST_FILE) > $(OUTPUT_FILE)
 
-$(OUT_FILE): lex.yy.c $(C_FILE)
+$(OUT_FILE): lexer
 	$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
 
-lex.yy.c: $(LEX_FILE)
+lexer:
 	lex $(LEX_FILE)
 
 clean:
