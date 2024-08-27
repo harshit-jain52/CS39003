@@ -6,14 +6,10 @@ OUT_FILE=$(BASE).out
 OUTPUT_FILE=$(BASE).output.txt
 TEST_FILE=$(BASE)_test.c
 
-$(OUTPUT_FILE): $(OUT_FILE) $(TEST_FILE)
+$(OUTPUT_FILE): $(TEST_FILE)
+	@lex $(LEX_FILE)
+	@$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
 	./$(OUT_FILE) < $(TEST_FILE) > $(OUTPUT_FILE)
-
-$(OUT_FILE): lexer
-	$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
-
-lexer:
-	lex $(LEX_FILE)
 
 clean:
 	rm -f lex.yy.c $(OUT_FILE) $(OUTPUT_FILE)
