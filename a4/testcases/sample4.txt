@@ -1,0 +1,4 @@
+(set a 0)
+(set b 1)
+(set c (* a b))
+(** a c)

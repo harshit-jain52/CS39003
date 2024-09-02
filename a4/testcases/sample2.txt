@@ -1,0 +1,6 @@
+(set a +5)
+(set b a)
+(set c (+ (* x b) (+ a b)))
+(+ (* a a)
+(** a b)
+)
