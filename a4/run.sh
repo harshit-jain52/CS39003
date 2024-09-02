@@ -1,6 +1,6 @@
 make all
 
-for i in {0..4}; do
+for i in {0..6}; do
     ./a.out <testcases/sample$i.txt
 done
 

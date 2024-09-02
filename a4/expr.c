@@ -113,6 +113,7 @@ ll evalexpr(node curr){
 
 ll binExp(ll a, ll b){
     if(a==0 && b==0) yyerror("0 pow 0 is undefined");
+    if(b<0) yyerror("Negative power not allowed");
     ll ans = 1;
     while(b){
         if(b & 1) ans = ans * a;

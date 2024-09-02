@@ -17,7 +17,7 @@ DIV         "/"
 MOD         "%"
 EXPO        "**"
 SET         "set"
-NUM         [-]?{DIGIT}+
+NUM         [+-]?{DIGIT}+
 LINE        [\n]
 WS          [ \t]
 PAR         "("|")"
