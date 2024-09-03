@@ -6,14 +6,17 @@
     extern int yylex();
     extern int yylineno;
     void yyerror ( char * );
+
     typedef long long ll;
 
+    // Structure for symbol (identifier and its value)
     struct symbol_ {
         char* name;
         ll val;
     };
     typedef struct symbol_* symbol;
 
+    // Structure for symbol table (linked list of identifiers and numbers)
     struct symnode
     {   
         int type;
@@ -25,6 +28,7 @@
     };
     typedef struct symnode* symbolTable;
 
+    // Structure for Expression Tree (binary tree of operators and operands)
     struct TreeNode
     {
         struct TreeNode *left;
@@ -39,18 +43,19 @@
     };
     typedef struct TreeNode* node;
 
-    symbolTable ST = NULL;
-    ll binExp(ll,ll);
-    ll evalexpr(node);
-    symbol createSymbol(char*, ll);
-    symbolTable insertTable(symbolTable, char*, ll);
-    symbolTable insertNum(symbolTable, ll);
-    ll findTable(symbolTable, char*);
-    node createInternalNode(int, node, node);
-    node createLeafId(char*, symbolTable);
-    node createLeafNum(ll);
-    void freeTable(symbolTable);
-    void throwError(char*);
+    symbolTable ST = NULL;                              // Global symbol table
+
+    ll binExp(ll,ll);                                   // Binary exponentiation
+    ll evalexpr(node);                                  // Evaluate expression    
+    symbol createSymbol(char*, ll);                     // Create a symbol (id and its value)
+    symbolTable insertTable(symbolTable, char*, ll);    // Insert/Update identifier in the symbol table
+    symbolTable insertNum(symbolTable, ll);             // Insert a number in the symbol table
+    ll findTable(symbolTable, char*);                   // Find the value of an identifier in the symbol table
+    node createInternalNode(int, node, node);           // Create an internal node (operator) in the Expression Tree
+    node createLeafId(char*, symbolTable);              // Create a leaf node (identifier) in the Expression Tree
+    node createLeafNum(ll);                             // Create a leaf node (number) in the Expression Tree
+    void freeTable(symbolTable);                        // Dealloc the symbol table
+    void throwError(char*);                             // Print error message and exit parse environment
 %}
 
 %union {
