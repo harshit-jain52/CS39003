@@ -1,6 +1,16 @@
 #include "lex.yy.c"
 #include "y.tab.c"
 #include <limits.h>
+#include <setjmp.h>
+
+static jmp_buf parseEnv;
+
+void throwError(char *err)
+{
+    fprintf(stderr, "***Error at line %d: %s\n", yylineno, err);
+    freeTable(ST);
+    longjmp(parseEnv, 1);
+}
 
 symbolTable insertTable(symbolTable T, char* id, ll data){
     printf("Variable %s is set to %lld\n", id, data);
@@ -35,7 +45,7 @@ symbolTable updateTable(symbolTable T, char* id1, char* id2){
 
     char* err = (char *)malloc((25+strlen(id2)*sizeof(char)));
     sprintf(err,"Undeclared identifier %s",id2);
-    yyerror(err);
+    throwError(err);
 }
 
 symbolTable insertNum(symbolTable T, ll data){
@@ -71,7 +81,7 @@ node createLeafId(char* id, symbolTable T){
     
     char* err = (char *)malloc((25+strlen(id)*sizeof(char)));
     sprintf(err,"Undeclared identifier %s",id);
-    yyerror(err);
+    throwError(err);
 }
 
 node createLeafNum(ll data){
@@ -98,10 +108,10 @@ ll evalexpr(node curr){
         case MUL:
             return l*r;
         case DIV:
-            if(r==0) yyerror("Division by Zero");
+            if(r==0) throwError("Division by Zero");
             return l/r;
         case MOD:
-            if(r==0) yyerror("Division by Zero");
+            if(r==0) throwError("Division by Zero");
             return l%r;
         case EXPO:
             return binExp(l,r);
@@ -112,8 +122,8 @@ ll evalexpr(node curr){
 }
 
 ll binExp(ll a, ll b){
-    if(a==0 && b==0) yyerror("0 pow 0 is undefined");
-    if(b<0) yyerror("Negative power not allowed");
+    if(a==0 && b==0) throwError("0 pow 0 is undefined");
+    if(b<0) throwError("Negative power not allowed");
     ll ans = 1;
     while(b){
         if(b & 1) ans = ans * a;
@@ -131,7 +141,10 @@ void freeTable(symbolTable T){
 
 int main(){
     printf("---Tokenization and Parsing Started\n");
-    yyparse();
-    printf("---Evaluation Successful\n");
-    exit(0);
+    if(setjmp(parseEnv)==0){
+        yyparse();
+        printf("---Evaluation Complete\n");
+    }
+    else printf("---Evaluation Failed\n");
+    
 }

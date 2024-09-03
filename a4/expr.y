@@ -2,6 +2,7 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
+
     extern int yylex();
     extern int yylineno;
     void yyerror ( char * );
@@ -44,7 +45,8 @@
     node createInternalNode(int, node, node);
     node createLeafId(char*, symbolTable);
     node createLeafNum(ll);
-    void freeTable(symbolTable T);
+    void freeTable(symbolTable);
+    void throwError(char*);
 %}
 
 %union {
@@ -102,7 +104,5 @@ arg:        ID                      {$$ = createLeafId($1, ST);}
 
 void yyerror (char * err)
 {
-    fprintf(stderr, "***Error at line %d: %s\n", yylineno, err);
-    freeTable(ST);
-    exit(1);
+    throwError(err);
 }
