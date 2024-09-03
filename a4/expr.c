@@ -11,9 +11,14 @@ void throwError(char *err)
     longjmp(parseEnv, 1);
 }
 
-symbolTable insertTable(symbolTable T, char* id, ll data){
-    printf("Variable %s is set to %lld\n", id, data);
-    
+symbol createSymbol(char* name, ll data){
+    symbol s = (struct symbol_*)malloc(sizeof(struct symbol_));
+    s->name = strdup(name);
+    s->val = data;
+    return s;
+}
+
+symbolTable insertTable(symbolTable T, char* id, ll data){    
     symbolTable mover = T;
     while(mover){
         if(mover->type==ID && !strcmp(mover->entry.id.name, id)){
@@ -32,18 +37,17 @@ symbolTable insertTable(symbolTable T, char* id, ll data){
     return p;
 }
 
-symbolTable updateTable(symbolTable T, char* id1, char* id2){
+ll findTable(symbolTable T, char* id){
     symbolTable mover = T;
     while(mover){
-        if(mover->type==ID && !strcmp(mover->entry.id.name, id2)){
-            T = insertTable(T, id1, mover->entry.id.val);
-            return T;
+        if(mover->type==ID && !strcmp(mover->entry.id.name, id)){
+            return mover->entry.id.val;
         }
         mover = mover->next;
     }
 
-    char* err = (char *)malloc((25+strlen(id2)*sizeof(char)));
-    sprintf(err,"Undeclared identifier %s",id2);
+    char* err = (char *)malloc((25+strlen(id)*sizeof(char)));
+    sprintf(err,"Undeclared identifier %s",id);
     throwError(err);
 }
 

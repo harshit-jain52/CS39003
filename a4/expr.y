@@ -8,14 +8,17 @@
     void yyerror ( char * );
     typedef long long ll;
 
+    struct symbol_ {
+        char* name;
+        ll val;
+    };
+    typedef struct symbol_* symbol;
+
     struct symnode
     {   
         int type;
         union{
-            struct{
-                char* name;
-                ll val;
-            } id;
+            struct symbol_ id;
             ll num;
         } entry;
         struct symnode *next;
@@ -39,9 +42,10 @@
     symbolTable ST = NULL;
     ll binExp(ll,ll);
     ll evalexpr(node);
+    symbol createSymbol(char*, ll);
     symbolTable insertTable(symbolTable, char*, ll);
-    symbolTable updateTable(symbolTable, char*, char*);
     symbolTable insertNum(symbolTable, ll);
+    ll findTable(symbolTable, char*);
     node createInternalNode(int, node, node);
     node createLeafId(char*, symbolTable);
     node createLeafNum(ll);
@@ -53,14 +57,17 @@
     long long num;
     char* text;
     struct TreeNode* tree;
+    struct symbol_* sym;
 }
+
 %token <num> NUM PLUS MINUS MUL DIV MOD EXPO
 %token <text> ID
 %token SET
 
 %start program
-%type <num> op
+%type <num> op exprstmt
 %type <tree> expr arg
+%type <sym> setstmt
 
 %%
 
@@ -70,17 +77,17 @@ program:
             ;
 
 stmt:
-            setstmt
-            | exprstmt
+            setstmt                 {printf("Variable %s is set to %lld\n", $1->name, $1->val); free($1);}
+            | exprstmt              {printf("Standalone expression evaluates to %lld\n", $1);}
             ;
 
 setstmt:
-            '(' SET ID NUM ')'      {ST = insertTable(ST, $3, $4); ST = insertNum(ST, $4);}
-            | '(' SET ID ID ')'     {ST = updateTable(ST, $3, $4);}
-            | '(' SET ID expr ')'   {ST = insertTable(ST, $3, evalexpr($4));}
+            '(' SET ID NUM ')'      {ST = insertTable(ST, $3, $4); ST = insertNum(ST, $4); $$ = createSymbol($3, $4);}
+            | '(' SET ID ID ')'     {ll val = findTable(ST,$4); ST = insertTable(ST, $3, val); $$ = createSymbol($3, val);}
+            | '(' SET ID expr ')'   {ll val = evalexpr($4); ST = insertTable(ST, $3, val); $$ = createSymbol($3, val);}
             ;
 
-exprstmt:   expr                    {printf("Standalone expression evaluates to %lld\n", evalexpr($1));}
+exprstmt:   expr                    {$$ = evalexpr($1);}
             ;
 
 expr:       '(' op arg arg ')'      {$$ = createInternalNode($2, $3, $4);}
