@@ -1,6 +1,5 @@
 #include "lex.yy.c"
 #include "y.tab.c"
-#include <limits.h>
 #include <setjmp.h>
 
 static jmp_buf parseEnv;
