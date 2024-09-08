@@ -14,6 +14,8 @@
 %type statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt
 %type translation_unit external_declaration function_definition declaration_list declaration_list_opt
 
+%start translation_unit
+
 %%
 
 /* Expressions */
