@@ -42,6 +42,54 @@ BOOL_		            "_Bool"
 COMPLEX_		        "_Complex"
 IMAGINARY_		        "_Imaginary"
 
+LSQPAREN                "["
+RSQPAREN                "]"
+LPAREN                  "("
+RPAREN                  ")"
+LBRACE                  "{"
+RBRACE                  "}"
+DOT                     "."
+ARROW                   "->"
+INC                     "++"
+DEC                     "--"
+AMPERSAND               "&"
+ASTERISK                "*"
+PLUS                    "+"
+MINUS                   "-"
+TILDE                   "~"
+NOT                     "!"
+DIV                     "/"
+MOD                     "%"
+LEFT_SHIFT               "<<"
+RIGHT_SHIFT              ">>"
+LT                      "<"
+GT                      ">"
+LE                      "<="
+GE                      ">="
+EQ                      "=="
+NE                      "!="
+XOR                     "^"
+OR                      "|"
+LOGICAL_AND             "&&"
+LOGICAL_OR              "||"
+QUESTION                "?"
+COLON                   ":"
+SEMICOLON               ";"
+ELLIPSIS                "..."
+ASSIGN                  "="
+MUL_ASSIGN              "*="
+DIV_ASSIGN              "/="
+MOD_ASSIGN              "%="
+ADD_ASSIGN              "+="
+SUB_ASSIGN              "-="
+LEFT_ASSIGN             "<<="
+RIGHT_ASSIGN            ">>="
+AND_ASSIGN              "&="
+XOR_ASSIGN              "^="
+OR_ASSIGN               "|="
+COMMA                   ","
+HASH                    "#"
+
 IDENTIFIER_NONDIGIT     [_A-Za-z]
 DIGIT                   [0-9]
 DIGIT_SEQUENCE          {DIGIT}+
@@ -65,10 +113,6 @@ STRING_LITERAL          \"{S_CHAR_SEQ}?\"
 
 CONSTANT                {INTEGER_CONSTANT}|{FLOATING_CONSTANT}|{CHAR_CONSTANT}
 
-BRACKETS                "["|"]"|"("|")"|"{"|"}"
-OPERATOR                "."|"->"|"++"|"--"|"&"|"*"|"+"|"-"|"~"|"!"|"/"|"%"|"<<"|">>"|"<"|">"|"<="|">="|"=="|"!="|"^"|"|"|"&&"|"||"|"?"|":"|";"|"..."|"="|"*="|"/="|"%="|"+="|"-="|"<<="|">>="|"&="|"^="|"|="|","|"#"
-PUNCTUATOR              {BRACKETS}|{OPERATOR}
-
 COMMENT_START           "/*"
 COMMENT_END             "*/"
 COMMENT_BODY            [^*]|[*][^/]
@@ -84,7 +128,6 @@ NEWLINE                 \n
 %%
 
 {NEWLINE}               { ++yylineno; }                 
-{IMAGINARY_}		    { return IMAGINARY_; }
 {AUTO}		            { return AUTO; }
 {BREAK}		            { return BREAK; }
 {CASE}		            { return CASE; }
@@ -122,11 +165,60 @@ NEWLINE                 \n
 {COMMENT}               { return COMMENT; }
 {BOOL_}		            { return BOOL_; }
 {COMPLEX_}		        { return COMPLEX_; }
+{IMAGINARY_}		    { return IMAGINARY_; }
 
 {IDENTIFIER}            { return IDENTIFIER; }  
 {CONSTANT}              { return CONSTANT; }
 {STRING_LITERAL}        { return STRING_LITERAL; }
-{PUNCTUATOR}            { return PUNCTUATOR; }
+
+{LSQPAREN}              { return LSQPAREN; }
+{RSQPAREN}              { return RSQPAREN; }
+{LPAREN}                { return LPAREN; }
+{RPAREN}                { return RPAREN; }
+{LBRACE}                { return LBRACE; }
+{RBRACE}                { return RBRACE; }
+{DOT}                   { return DOT; }
+{ARROW}                 { return ARROW; }
+{INC}                   { return INC; }
+{DEC}                   { return DEC; }
+{AMPERSAND}             { return AMPERSAND; }
+{ASTERISK}              { return ASTERISK; }
+{PLUS}                  { return PLUS; }
+{MINUS}                 { return MINUS; }
+{TILDE}                 { return TILDE; }
+{NOT}                   { return NOT; }
+{DIV}                   { return DIV; }
+{MOD}                   { return MOD; }
+{LEFT_SHIFT}            { return LEFT_SHIFT; }
+{RIGHT_SHIFT}           { return RIGHT_SHIFT; }
+{LT}                    { return LT; }
+{GT}                    { return GT; }
+{LE}                    { return LE; }
+{GE}                    { return GE; }
+{EQ}                    { return EQ; }
+{NE}                    { return NE; }
+{XOR}                   { return XOR; }
+{OR}                    { return OR; }
+{LOGICAL_AND}           { return LOGICAL_AND; }
+{LOGICAL_OR}            { return LOGICAL_OR; }
+{QUESTION}              { return QUESTION; }
+{COLON}                 { return COLON; }
+{SEMICOLON}             { return SEMICOLON; }
+{ELLIPSIS}              { return ELLIPSIS; }
+{ASSIGN}                { return ASSIGN; }
+{MUL_ASSIGN}            { return MUL_ASSIGN; }
+{DIV_ASSIGN}            { return DIV_ASSIGN; }
+{MOD_ASSIGN}            { return MOD_ASSIGN; }
+{ADD_ASSIGN}            { return ADD_ASSIGN; }
+{SUB_ASSIGN}            { return SUB_ASSIGN; }
+{LEFT_ASSIGN}           { return LEFT_ASSIGN; }
+{RIGHT_ASSIGN}          { return RIGHT_ASSIGN; }
+{AND_ASSIGN}            { return AND_ASSIGN; }
+{XOR_ASSIGN}            { return XOR_ASSIGN; }
+{OR_ASSIGN}             { return OR_ASSIGN; }
+{COMMA}                 { return COMMA; }
+{HASH}                  { return HASH; }
+
 {WS}                    { /* ignore */ }
 .                       { /* ignore */ }
 

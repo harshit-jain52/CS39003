@@ -16,7 +16,7 @@
 
 %%
 
-%{/* Expressions */%}
+/* Expressions */
 
 primary_expression:
         IDENTIFIER
@@ -155,7 +155,7 @@ expression:
 constant_expression:
         conditional_expression
     
-%{/* Declarations */%}
+/* Declarations */
 
 declaration:
         declaration_specifiers init_declarator_list_opt
@@ -175,7 +175,7 @@ init_declarator_list:
 
 init_declarator:
         declarator
-        | declaration ASSIGN initializer
+        | declarator ASSIGN initializer
         ;
 
 storage_class_specifier:
@@ -202,7 +202,7 @@ type_specifier:
 
 specifier_qualifier_list:
         type_specifier specifier_qualifier_list_opt
-        | type_specifier specifier_qualifier_list_opt
+        | type_qualifier specifier_qualifier_list_opt
         ;
 
 type_qualifier:
@@ -224,6 +224,7 @@ direct_declarator:
         | LPAREN declarator RPAREN
         | direct_declarator LSQPAREN type_qualifier_list_opt assignment_expression_opt RSQPAREN
         | direct_declarator LSQPAREN STATIC type_qualifier_list_opt assignment_expression RSQPAREN
+        | direct_declarator LSQPAREN type_qualifier_list STATIC assignment_expression RSQPAREN
         | direct_declarator LSQPAREN type_qualifier_list_opt ASTERISK RSQPAREN
         | direct_declarator LPAREN parameter_type_list RPAREN
         | direct_declarator LPAREN identifier_list_opt RPAREN
@@ -287,7 +288,7 @@ designator:
         | DOT IDENTIFIER
         ;
 
-%{/* Statements */%}
+/* Statements */
 
 statement:
         labeled_statement
@@ -310,7 +311,7 @@ compound_statement:
 
 block_item_list:
         block_item
-        | block_item block_item_list
+        | block_item_list block_item
         ;
 
 block_item:
@@ -342,7 +343,7 @@ jump_statement:
         | RETURN expression_opt SEMICOLON
         ;
 
-%{/* External Definitions */%}
+/* External Definitions */
 
 translation_unit:
         external_declaration
@@ -364,7 +365,7 @@ declaration_list:
         ;
 
 
-%{/* Optionals */%}
+/* Optionals */
 
 argument_expression_list_opt:
         argument_expression_list
