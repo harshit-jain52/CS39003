@@ -14,6 +14,9 @@
 %type statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt
 %type translation_unit external_declaration function_definition declaration_list declaration_list_opt
 
+%nonassoc PSEUDO_ELSE
+%nonassoc ELSE
+
 %start translation_unit
 
 %%
@@ -37,7 +40,7 @@ postfix_expression:
         | postfix_expression DEC
         | LPAREN type_name RPAREN LBRACE initializer_list RBRACE
         | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE
-
+        ;
 
 argument_expression_list:
         assignment_expression
@@ -156,11 +159,12 @@ expression:
 
 constant_expression:
         conditional_expression
+        ;
     
 /* Declarations */
 
 declaration:
-        declaration_specifiers init_declarator_list_opt
+        declaration_specifiers init_declarator_list_opt SEMICOLON
         ;
 
 declaration_specifiers:
@@ -260,6 +264,7 @@ parameter_declaration:
 identifier_list:
         IDENTIFIER
         | identifier_list COMMA IDENTIFIER
+        ;
 
 type_name:
         specifier_qualifier_list
@@ -326,7 +331,7 @@ expression_statement:
         ;
 
 selection_statement:
-        IF LPAREN expression RPAREN statement
+        IF LPAREN expression RPAREN statement   %prec PSEUDO_ELSE
         | IF LPAREN expression RPAREN statement ELSE statement
         | SWITCH LPAREN expression RPAREN statement
         ;
