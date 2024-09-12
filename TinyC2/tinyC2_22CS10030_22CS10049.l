@@ -111,8 +111,6 @@ S_CHAR                  [^"\\\n]|{ESCAPE_SEQ}
 S_CHAR_SEQ              {S_CHAR}+
 STRING_LITERAL          \"{S_CHAR_SEQ}?\"
 
-CONSTANT                {INTEGER_CONSTANT}|{FLOATING_CONSTANT}|{CHAR_CONSTANT}
-
 COMMENT_START           "/*"
 COMMENT_END             "*/"
 COMMENT_BODY            [^*]|[*][^/]
@@ -127,7 +125,9 @@ NEWLINE                 \n
 
 %%
 
+{COMMENT}               { /* ignore */ }
 {NEWLINE}               { ++yylineno; }                 
+
 {AUTO}		            { return AUTO; }
 {BREAK}		            { return BREAK; }
 {CASE}		            { return CASE; }
@@ -162,13 +162,14 @@ NEWLINE                 \n
 {VOID}		            { return VOID; }
 {VOLATILE}		        { return VOLATILE; }
 {WHILE}		            { return WHILE; }
-{COMMENT}               { return COMMENT; }
 {BOOL_}		            { return BOOL_; }
 {COMPLEX_}		        { return COMPLEX_; }
 {IMAGINARY_}		    { return IMAGINARY_; }
 
 {IDENTIFIER}            { return IDENTIFIER; }  
-{CONSTANT}              { return CONSTANT; }
+{FLOATING_CONSTANT}     { return FLOATING_CONSTANT; }
+{INTEGER_CONSTANT}      { return INTEGER_CONSTANT; }
+{CHAR_CONSTANT}         { return CHAR_CONSTANT; }
 {STRING_LITERAL}        { return STRING_LITERAL; }
 
 {LSQPAREN}              { return LSQPAREN; }

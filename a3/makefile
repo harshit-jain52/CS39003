@@ -1,15 +1,10 @@
-CC=gcc
-BASE=ass3_22CS10030_22CS10049
-LEX_FILE=$(BASE).l
-C_FILE=$(BASE).c
-OUT_FILE=$(BASE).out
-OUTPUT_FILE=$(BASE).output.txt
-TEST_FILE=$(BASE)_test.c
+all:
+	yacc -d expr.y
+	lex expr.l
+	gcc expr.c
 
-run:
-	@lex $(LEX_FILE)
-	@$(CC) lex.yy.c $(C_FILE) -o $(OUT_FILE)
-	./$(OUT_FILE) < $(TEST_FILE) > $(OUTPUT_FILE)
+run: all
+	./a.out < sample.txt
 
 clean:
-	rm -f lex.yy.c $(OUT_FILE) $(OUTPUT_FILE)
+	-rm -f a.out y.tab.h y.tab.c lex.yy.c

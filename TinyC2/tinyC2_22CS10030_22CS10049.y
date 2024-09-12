@@ -4,7 +4,7 @@
     void yyerror ( char * );    
 %}
 
-%token IDENTIFIER CONSTANT STRING_LITERAL
+%token IDENTIFIER FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND ASTERISK PLUS MINUS TILDE NOT DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
@@ -13,7 +13,7 @@
 %type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer pointer_opt direct_declarator type_qualifier_list type_qualifier_list_opt assignment_expression_opt parameter_type_list identifier_list identifier_list_opt parameter_list parameter_declaration designation designation_opt designator_list designator
 %type statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt
 %type translation_unit external_declaration function_definition declaration_list declaration_list_opt
-
+%type constant
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
 
@@ -25,7 +25,7 @@
 
 primary_expression:
         IDENTIFIER
-        | CONSTANT
+        | constant
         | STRING_LITERAL
         | LPAREN expression RPAREN
         ;
@@ -434,5 +434,11 @@ declaration_list_opt:
         | {/* Empty */}
         ;
 
+/* Constants */
 
+constant:
+        INTEGER_CONSTANT
+        | FLOATING_CONSTANT
+        | CHAR_CONSTANT
+        ;
 %%
