@@ -1,9 +1,28 @@
-%{
+%{	
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <stdarg.h>
+
     extern int yylex();
     extern int yylineno;
-    void yyerror ( char * );    
+    void yyerror ( char * );  
+
+    typedef struct parse_tree_node {
+        char* text;
+		struct node_child_list* children;
+    } parse_tree_node;  
+
+	typedef struct node_child_list {
+		struct parse_tree_node* child;
+		struct node_child_list* next;
+	} node_child_list;	
+
+	parse_tree_node* create_node(char *, ...);
 %}
 
+%union {
+	struct parse_tree_node* node;
+}
 %token IDENTIFIER FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
@@ -442,3 +461,33 @@ constant:
         | CHAR_CONSTANT
         ;
 %%
+
+parse_tree_node* create_node(char* production_text, int num_children, ...) {
+	parse_tree_node* new_node = (parse_tree_node*)malloc(sizeof(parse_tree_node));
+	new_node->text = strdup(production_text);
+	new_node->children = NULL;
+
+	if(!num_children) return new_node;
+
+	va_list args;
+	va_start(args, num_children);
+	node_child_list* head, mover;
+	head = (node_child_list*)malloc(sizeof(node_child_list));
+	head = va_arg(args, parse_tree_node*);
+	mover = head;
+	new_node->children = head;
+	int ct = 1;
+	do{
+		
+		mover->next = temp;
+		mover = mover->next;
+		ct++;
+	} while(ct < num_children );
+}
+
+node_child_list* add_child_node(parse_tree_node* data){
+	node_child_list* temp = (node_child_list*)malloc(sizeof(node_child_list));
+	temp->child = data;
+	temp->next = NULL;
+	return temp;
+}
