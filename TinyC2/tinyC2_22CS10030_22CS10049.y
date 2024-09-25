@@ -18,10 +18,11 @@
 	} node_child_list;	
 
 
-	parse_tree_node* create_node(char *, ...);
+	parse_tree_node* create_node(char *, int, ...);
         node_child_list* add_child_node(parse_tree_node* );
-        print_productions(parse_tree_node*, int);
-        print_spaces(int);
+        void print_productions(parse_tree_node*, int);
+        void print_spaces(int);
+        void throw_error(char*);
 %}
 
 %union {
@@ -33,6 +34,7 @@
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND ASTERISK PLUS MINUS TILDE NOT DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
+%token ENUM STRUCT UNION TYPEDEF HASH
 %type <node> primary_expression expression postfix_expression argument_expression_list argument_expression_list_opt type_name initializer_list assignment_expression unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression constant_expression expression_opt
 %type <node> unary_operator assignment_operator
 %type <node> declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer pointer_opt direct_declarator type_qualifier_list type_qualifier_list_opt assignment_expression_opt parameter_type_list identifier_list identifier_list_opt parameter_list parameter_declaration designation designation_opt designator_list designator
@@ -468,45 +470,7 @@ constant:
         ;
 %%
 
-parse_tree_node* create_node(char* production_text, int num_children, ...) {
-	parse_tree_node* new_node = (parse_tree_node*)malloc(sizeof(parse_tree_node));
-	new_node->text = strdup(production_text);
-	new_node->children = NULL;
-
-	if(!num_children) return new_node;
-
-	va_list args;
-	va_start(args, num_children);
-	new_node->children = add_child_node(va_arg(args, parse_tree_node*));
-	node_child_list* mover = new_node->children;
-	int ct = 1;
-        while(ct < num_children){
-		mover->next = add_child_node(va_arg(args, parse_tree_node*));
-		mover = mover->next;
-		ct++;
-	}
-        va_end(args);
-        return new_node;
-}
-
-node_child_list* add_child_node(parse_tree_node* data){
-	node_child_list* temp = (node_child_list*)malloc(sizeof(node_child_list));
-	temp->child = data;
-	temp->next = NULL;
-	return temp;
-}
-
-print_productions(parse_tree_node* root, int level){
-        if(root == NULL) return;
-        print_spaces(level);
-        printf("%s\n", root->text);
-        node_child_list* mover = root->children;
-        while(mover != NULL){
-                print_productions(mover->child, level+1);
-                mover = mover->next;
-        }
-}
-
-print_spaces(int num){
-        for(int i = 0; i < num; i++) printf("  ");
+void yyerror (char * err)
+{
+    throw_error(err);
 }
