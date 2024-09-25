@@ -51,9 +51,9 @@
 /* Expressions */
 
 primary_expression:
-        IDENTIFIER                      {$$ = create_node("primary_expression -> IDENTIFIER", 0);}
-        | constant                      {$$ = create_node("primary_expression -> CONSTANT", 0);}
-        | STRING_LITERAL                {$$ = create_node("primary_expression -> STRING_LITERAL", 0);}
+        IDENTIFIER                      {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"primary_expression -> %s",$1); $$ = create_node(msg, 0);}
+        | constant                      {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"primary_expression -> %s",$1); $$ = create_node(msg, 0);}
+        | STRING_LITERAL                {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"primary_expression -> %s",$1); $$ = create_node(msg, 0);}
         | LPAREN expression RPAREN      {$$ = create_node("primary_expression -> ( expression )", 1, $2);}
         ;
 
@@ -61,8 +61,8 @@ postfix_expression:
         primary_expression                                              {$$ = create_node("postfix_expression -> primary_expression", 1, $1);}
         | postfix_expression LSQPAREN expression RSQPAREN               {$$ = create_node("postfix_expression -> postfix_expression [ expression ]", 2, $1, $3);}
         | postfix_expression LPAREN argument_expression_list_opt RPAREN {$$ = create_node("postfix_expression -> postfix_expression ( argument_expression_list_opt )", 2, $1, $3);}
-        | postfix_expression DOT IDENTIFIER                             {$$ = create_node("postfix_expression -> postfix_expression . IDENTIFIER", 1, $1);}
-        | postfix_expression ARROW IDENTIFIER                           {$$ = create_node("postfix_expression -> postfix_expression -> IDENTIFIER", 1, $1);}
+        | postfix_expression DOT IDENTIFIER                             {char* msg = (char*)malloc((45+strlen($3))*sizeof(char)); sprintf(msg,"postfix_expression -> postfix_expression . %s",$3); $$ = create_node(msg, 1, $1);}
+        | postfix_expression ARROW IDENTIFIER                           {char* msg = (char*)malloc((45+strlen($3))*sizeof(char)); sprintf(msg,"postfix_expression -> postfix_expression -> %s",$3); $$ = create_node(msg, 1, $1);}
         | postfix_expression INC                                        {$$ = create_node("postfix_expression -> postfix_expression ++", 1, $1);}
         | postfix_expression DEC                                        {$$ = create_node("postfix_expression -> postfix_expression --", 1, $1);}
         | LPAREN type_name RPAREN LBRACE initializer_list RBRACE        {$$ = create_node("postfix_expression -> ( type_name ) { initializer_list }", 2, $2, $5);}
@@ -253,7 +253,7 @@ declarator:
         ;
 
 direct_declarator:
-        IDENTIFIER                      {$$ = create_node("direct_declarator -> IDENTIFIER", 0);}
+        IDENTIFIER                      {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"direct_declarator -> %s",$1); $$ = create_node(msg, 0);}
         | LPAREN declarator RPAREN      {$$ = create_node("direct_declarator -> ( declarator )", 1, $2);}
         | direct_declarator LSQPAREN type_qualifier_list_opt assignment_expression_opt RSQPAREN         {$$ = create_node("direct_declarator -> direct_declarator [ type_qualifier_list_opt assignment_expression_opt ]", 3, $1, $3, $4);}
         | direct_declarator LSQPAREN STATIC type_qualifier_list_opt assignment_expression RSQPAREN      {$$ = create_node("direct_declarator -> direct_declarator [ static type_qualifier_list_opt assignment_expression ]", 3, $1, $4, $5);}
@@ -289,8 +289,8 @@ parameter_declaration:
         ;
 
 identifier_list:
-        IDENTIFIER      {$$ = create_node("identifier_list -> IDENTIFIER", 0);}
-        | identifier_list COMMA IDENTIFIER      {$$ = create_node("identifier_list -> identifier_list , IDENTIFIER", 2, $1, $3);}
+        IDENTIFIER      {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"identifier_list -> %s",$1); $$ = create_node(msg, 0);}
+        | identifier_list COMMA IDENTIFIER      {char* msg = (char*)malloc((50+strlen($3))*sizeof(char)); sprintf(msg,"identifier_list -> identifier_list , %s",$3); $$ = create_node(msg, 1, $1);}
         ;
 
 type_name:
@@ -319,7 +319,7 @@ designator_list:
 
 designator:
         LSQPAREN constant_expression RSQPAREN   {$$ = create_node("designator -> [ constant_expression ]", 1, $2);}
-        | DOT IDENTIFIER                        {$$ = create_node("designator -> . IDENTIFIER", 0);}
+        | DOT IDENTIFIER                        {char* msg = (char*)malloc((25+strlen($2))*sizeof(char)); sprintf(msg,"designator -> . %s",$2); $$ = create_node(msg, 0);}
         ;
 
 /* Statements */
@@ -334,7 +334,7 @@ statement:
         ;
 
 labeled_statement:
-        IDENTIFIER COLON statement      {$$ = create_node("labeled_statement -> IDENTIFIER : statement", 1, $3);}
+        IDENTIFIER COLON statement      {char* msg = (char*)malloc((30+strlen($1))*sizeof(char)); sprintf(msg,"labeled_statement -> %s : statement",$1); $$ = create_node(msg, 1, $3);}
         | CASE constant_expression COLON statement      {$$ = create_node("labeled_statement -> case constant_expression : statement", 2, $2, $4);}
         | DEFAULT COLON statement       {$$ = create_node("labeled_statement -> default : statement", 1, $3);}
         ;
@@ -371,7 +371,7 @@ iteration_statement:
         ;
 
 jump_statement:
-        GOTO IDENTIFIER SEMICOLON               {$$ = create_node("jump_statement -> goto IDENTIFIER ;", 0);}
+        GOTO IDENTIFIER SEMICOLON               {char* msg = (char*)malloc((25+strlen($2))*sizeof(char)); sprintf(msg,"jump_statement -> goto %s ;",$2); $$ = create_node(msg, 0);}
         | CONTINUE SEMICOLON                    {$$ = create_node("jump_statement -> continue ;", 0);}
         | BREAK SEMICOLON                       {$$ = create_node("jump_statement -> break ;", 0);}
         | RETURN expression_opt SEMICOLON       {$$ = create_node("jump_statement -> return expression_opt ;", 1, $2);}
