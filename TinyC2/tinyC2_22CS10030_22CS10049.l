@@ -166,11 +166,11 @@ NEWLINE                 \n
 {COMPLEX_}		        { return COMPLEX_; }
 {IMAGINARY_}		    { return IMAGINARY_; }
 
-{IDENTIFIER}            { return IDENTIFIER; }  
-{FLOATING_CONSTANT}     { return FLOATING_CONSTANT; }
-{INTEGER_CONSTANT}      { return INTEGER_CONSTANT; }
-{CHAR_CONSTANT}         { return CHAR_CONSTANT; }
-{STRING_LITERAL}        { return STRING_LITERAL; }
+{IDENTIFIER}            { yylval.text = strdup(yytext); return IDENTIFIER; }  
+{FLOATING_CONSTANT}     { yylval.text = strdup(yytext); return FLOATING_CONSTANT; }
+{INTEGER_CONSTANT}      { yylval.text = strdup(yytext); return INTEGER_CONSTANT; }
+{CHAR_CONSTANT}         { yylval.text = strdup(yytext); return CHAR_CONSTANT; }
+{STRING_LITERAL}        { yylval.text = strdup(yytext); return STRING_LITERAL; }
 
 {LSQPAREN}              { return LSQPAREN; }
 {RSQPAREN}              { return RSQPAREN; }
