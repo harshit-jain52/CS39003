@@ -93,31 +93,31 @@ unary_operator:
         ;
 
 cast_expression:
-        unary_expression            {$$ = create_node("cast_expression -> unary_expression", 1, $1);}
+        unary_expression                          {$$ = create_node("cast_expression -> unary_expression", 1, $1);}
         | LPAREN type_name RPAREN cast_expression {$$ = create_node("cast_expression -> ( type_name ) cast_expression", 2, $2, $4);}
         ;
 
 multiplicative_expression:
-        cast_expression         {$$ = create_node("multiplicative_expression -> cast_expression", 1, $1);}
+        cast_expression                                         {$$ = create_node("multiplicative_expression -> cast_expression", 1, $1);}
         | multiplicative_expression ASTERISK cast_expression    {$$ = create_node("multiplicative_expression -> multiplicative_expression * cast_expression", 2, $1, $3);}
         | multiplicative_expression DIV cast_expression         {$$ = create_node("multiplicative_expression -> multiplicative_expression / cast_expression", 2, $1, $3);}
         | multiplicative_expression MOD cast_expression         {$$ = create_node("multiplicative_expression -> multiplicative_expression \% cast_expression", 2, $1, $3);}
         ;
 
 additive_expression:
-        multiplicative_expression       {$$ = create_node("additive_expression -> multiplicative_expression", 1, $1);}
+        multiplicative_expression                               {$$ = create_node("additive_expression -> multiplicative_expression", 1, $1);}
         | additive_expression PLUS multiplicative_expression    {$$ = create_node("additive_expression -> additive_expression + multiplicative_expression", 2, $1, $3);}
         | additive_expression MINUS multiplicative_expression   {$$ = create_node("additive_expression -> additive_expression - multiplicative_expression", 2, $1, $3);}
         ;
 
 shift_expression:
-        additive_expression         {$$ = create_node("shift_expression -> additive_expression", 1, $1);}
+        additive_expression                                     {$$ = create_node("shift_expression -> additive_expression", 1, $1);}
         | shift_expression LEFT_SHIFT additive_expression       {$$ = create_node("shift_expression -> shift_expression << additive_expression", 2, $1, $3);}
         | shift_expression RIGHT_SHIFT additive_expression      {$$ = create_node("shift_expression -> shift_expression >> additive_expression", 2, $1, $3);}
         ;
 
 relational_expression:
-        shift_expression        {$$ = create_node("relational_expression -> shift_expression", 1, $1);}
+        shift_expression                                {$$ = create_node("relational_expression -> shift_expression", 1, $1);}
         | relational_expression LT shift_expression     {$$ = create_node("relational_expression -> relational_expression < shift_expression", 2, $1, $3);}
         | relational_expression GT shift_expression     {$$ = create_node("relational_expression -> relational_expression > shift_expression", 2, $1, $3);}
         | relational_expression LE shift_expression     {$$ = create_node("relational_expression -> relational_expression <= shift_expression", 2, $1, $3);}
@@ -125,7 +125,7 @@ relational_expression:
         ;
 
 equality_expression:
-        relational_expression    {$$ = create_node("equality_expression -> relational_expression", 1, $1);}
+        relational_expression                           {$$ = create_node("equality_expression -> relational_expression", 1, $1);}
         | equality_expression EQ relational_expression  {$$ = create_node("equality_expression -> equality_expression == relational_expression", 2, $1, $3);}
         | equality_expression NE relational_expression  {$$ = create_node("equality_expression -> equality_expression != relational_expression", 2, $1, $3);}
         ;
@@ -180,7 +180,7 @@ assignment_operator:
         ;
 
 expression:
-        assignment_expression        {$$ = create_node("expression -> assignment_expression", 1, $1);}
+        assignment_expression                           {$$ = create_node("expression -> assignment_expression", 1, $1);}
         | expression COMMA assignment_expression        {$$ = create_node("expression -> expression , assignment_expression", 2, $1, $3);}
         ;
 
@@ -202,12 +202,12 @@ declaration_specifiers:
         ;
 
 init_declarator_list:
-        init_declarator         {$$ = create_node("init_declarator_list -> init_declarator", 1, $1);}
+        init_declarator                                 {$$ = create_node("init_declarator_list -> init_declarator", 1, $1);}
         | init_declarator_list COMMA init_declarator    {$$ = create_node("init_declarator_list -> init_declarator_list , init_declarator", 2, $1, $3);}
         ;
 
 init_declarator:
-        declarator              {$$ = create_node("init_declarator -> declarator", 1, $1);}
+        declarator                              {$$ = create_node("init_declarator -> declarator", 1, $1);}
         | declarator ASSIGN initializer         {$$ = create_node("init_declarator -> declarator = initializer", 2, $1, $3);}
         ;
 
@@ -269,32 +269,32 @@ pointer:
         ;
 
 type_qualifier_list:
-        type_qualifier  {$$ = create_node("type_qualifier_list -> type_qualifier", 1, $1);}
+        type_qualifier                          {$$ = create_node("type_qualifier_list -> type_qualifier", 1, $1);}
         | type_qualifier_list type_qualifier    {$$ = create_node("type_qualifier_list -> type_qualifier_list type_qualifier", 2, $1, $2);}
         ;
 
 parameter_type_list:
-        parameter_list      {$$ = create_node("parameter_type_list -> parameter_list", 1, $1);}
+        parameter_list                          {$$ = create_node("parameter_type_list -> parameter_list", 1, $1);}
         | parameter_list COMMA ELLIPSIS         {$$ = create_node("parameter_type_list -> parameter_list , ...", 2, $1);}
         ;
 
 parameter_list:
-        parameter_declaration    {$$ = create_node("parameter_list -> parameter_declaration", 1, $1);}
+        parameter_declaration                           {$$ = create_node("parameter_list -> parameter_declaration", 1, $1);}
         | parameter_list COMMA parameter_declaration    {$$ = create_node("parameter_list -> parameter_list , parameter_declaration", 2, $1, $3);}
         ;
 
 parameter_declaration:
         declaration_specifiers declarator       {$$ = create_node("parameter_declaration -> declaration_specifiers declarator", 2, $1, $2);}
-        | declaration_specifiers        {$$ = create_node("parameter_declaration -> declaration_specifiers", 1, $1);}
+        | declaration_specifiers                {$$ = create_node("parameter_declaration -> declaration_specifiers", 1, $1);}
         ;
 
 identifier_list:
-        IDENTIFIER      {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"identifier_list -> %s",$1); $$ = create_node(msg, 0);}
+        IDENTIFIER                              {char* msg = (char*)malloc((25+strlen($1))*sizeof(char)); sprintf(msg,"identifier_list -> %s",$1); $$ = create_node(msg, 0);}
         | identifier_list COMMA IDENTIFIER      {char* msg = (char*)malloc((50+strlen($3))*sizeof(char)); sprintf(msg,"identifier_list -> identifier_list , %s",$3); $$ = create_node(msg, 1, $1);}
         ;
 
 type_name:
-        specifier_qualifier_list        {$$ = create_node("type_name -> specifier_qualifier_list", 1, $1);}
+        specifier_qualifier_list                {$$ = create_node("type_name -> specifier_qualifier_list", 1, $1);}
         ;
 
 initializer:
@@ -304,7 +304,7 @@ initializer:
         ;
 
 initializer_list:
-        designation_opt initializer     {$$ = create_node("initializer_list -> designation_opt initializer", 2, $1, $2);}
+        designation_opt initializer                             {$$ = create_node("initializer_list -> designation_opt initializer", 2, $1, $2);}
         | initializer_list COMMA designation_opt initializer    {$$ = create_node("initializer_list -> initializer_list , designation_opt initializer", 3, $1, $3, $4);}
         ;
 
@@ -334,9 +334,9 @@ statement:
         ;
 
 labeled_statement:
-        IDENTIFIER COLON statement      {char* msg = (char*)malloc((30+strlen($1))*sizeof(char)); sprintf(msg,"labeled_statement -> %s : statement",$1); $$ = create_node(msg, 1, $3);}
+        IDENTIFIER COLON statement                      {char* msg = (char*)malloc((30+strlen($1))*sizeof(char)); sprintf(msg,"labeled_statement -> %s : statement",$1); $$ = create_node(msg, 1, $3);}
         | CASE constant_expression COLON statement      {$$ = create_node("labeled_statement -> case constant_expression : statement", 2, $2, $4);}
-        | DEFAULT COLON statement       {$$ = create_node("labeled_statement -> default : statement", 1, $3);}
+        | DEFAULT COLON statement                       {$$ = create_node("labeled_statement -> default : statement", 1, $3);}
         ;
 
 compound_statement:
@@ -344,7 +344,7 @@ compound_statement:
         ;
 
 block_item_list:
-        block_item      {$$ = create_node("block_item_list -> block_item", 1, $1);}
+        block_item                      {$$ = create_node("block_item_list -> block_item", 1, $1);}
         | block_item_list block_item    {$$ = create_node("block_item_list -> block_item_list block_item", 2, $1, $2);}
         ;
 
@@ -359,15 +359,15 @@ expression_statement:
 
 selection_statement:
         IF LPAREN expression RPAREN statement   %prec PSEUDO_ELSE       {$$ = create_node("selection_statement -> if ( expression ) statement", 2, $3, $5);}
-        | IF LPAREN expression RPAREN statement ELSE statement  {$$ = create_node("selection_statement -> if ( expression ) statement else statement", 3, $3, $5, $7);}
-        | SWITCH LPAREN expression RPAREN statement     {$$ = create_node("selection_statement -> switch ( expression ) statement", 2, $3, $5);}
+        | IF LPAREN expression RPAREN statement ELSE statement          {$$ = create_node("selection_statement -> if ( expression ) statement else statement", 3, $3, $5, $7);}
+        | SWITCH LPAREN expression RPAREN statement                     {$$ = create_node("selection_statement -> switch ( expression ) statement", 2, $3, $5);}
         ;
 
 iteration_statement:
-        WHILE LPAREN expression RPAREN statement        {$$ = create_node("iteration_statement -> while ( expression ) statement", 2, $3, $5);}
-        | DO statement WHILE LPAREN expression RPAREN SEMICOLON {$$ = create_node("iteration_statement -> do statement while ( expression ) ;", 2, $2, $5);}
+        WHILE LPAREN expression RPAREN statement                        {$$ = create_node("iteration_statement -> while ( expression ) statement", 2, $3, $5);}
+        | DO statement WHILE LPAREN expression RPAREN SEMICOLON         {$$ = create_node("iteration_statement -> do statement while ( expression ) ;", 2, $2, $5);}
         | FOR LPAREN expression_opt SEMICOLON expression_opt SEMICOLON expression_opt RPAREN statement  {$$ = create_node("iteration_statement -> for ( expression_opt ; expression_opt ; expression_opt ) statement", 4, $3, $5, $7, $9);}
-        | FOR LPAREN declaration expression_opt SEMICOLON expression_opt RPAREN statement       {$$ = create_node("iteration_statement -> for ( declaration expression_opt ; expression_opt ) statement", 4, $3, $4, $6, $8);}
+        | FOR LPAREN declaration expression_opt SEMICOLON expression_opt RPAREN statement               {$$ = create_node("iteration_statement -> for ( declaration expression_opt ; expression_opt ) statement", 4, $3, $4, $6, $8);}
         ;
 
 jump_statement:
@@ -380,7 +380,7 @@ jump_statement:
 /* External Definitions */
 
 translation_unit:
-        external_declaration    {$$ = create_node("translation_unit -> external_declaration", 1, $1); print_productions($$, 0);}
+        external_declaration                    {$$ = create_node("translation_unit -> external_declaration", 1, $1); print_productions($$, 0);}
         | translation_unit external_declaration {$$ = create_node("translation_unit -> translation_unit external_declaration", 2, $1, $2);}
         ;
 
@@ -394,7 +394,7 @@ function_definition:
         ;
 
 declaration_list:
-        declaration             {$$ = create_node("declaration_list -> declaration", 1, $1);}
+        declaration                     {$$ = create_node("declaration_list -> declaration", 1, $1);}
         | declaration_list declaration  {$$ = create_node("declaration_list -> declaration_list declaration", 2, $1, $2);}
         ;
 
