@@ -264,8 +264,8 @@ direct_declarator:
         ;
 
 pointer:
-        ASTERISK type_qualifier_list_opt                {$$ = create_node("pointer -> * type_qualifier_list_opt", 2, $2);}
-        | ASTERISK type_qualifier_list_opt pointer      {$$ = create_node("pointer -> * type_qualifier_list_opt pointer", 3, $2, $3);}
+        ASTERISK type_qualifier_list_opt                {$$ = create_node("pointer -> * type_qualifier_list_opt", 1, $2);}
+        | ASTERISK type_qualifier_list_opt pointer      {$$ = create_node("pointer -> * type_qualifier_list_opt pointer", 2, $2, $3);}
         ;
 
 type_qualifier_list:
@@ -275,7 +275,7 @@ type_qualifier_list:
 
 parameter_type_list:
         parameter_list                          {$$ = create_node("parameter_type_list -> parameter_list", 1, $1);}
-        | parameter_list COMMA ELLIPSIS         {$$ = create_node("parameter_type_list -> parameter_list , ...", 2, $1);}
+        | parameter_list COMMA ELLIPSIS         {$$ = create_node("parameter_type_list -> parameter_list , ...", 1, $1);}
         ;
 
 parameter_list:
@@ -300,7 +300,7 @@ type_name:
 initializer:
         assignment_expression                   {$$ = create_node("initializer -> assignment_expression", 1, $1);}
         | LBRACE initializer_list RBRACE        {$$ = create_node("initializer -> { initializer_list }", 1, $2);}
-        | LBRACE initializer_list COMMA RBRACE  {$$ = create_node("initializer -> { initializer_list , }", 2, $2);}
+        | LBRACE initializer_list COMMA RBRACE  {$$ = create_node("initializer -> { initializer_list , }", 1, $2);}
         ;
 
 initializer_list:
