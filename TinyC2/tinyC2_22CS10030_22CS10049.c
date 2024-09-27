@@ -34,6 +34,19 @@ node_child_list* add_child_node(parse_tree_node* data){
 	return temp;
 }
 
+void clean_parse_tree(parse_tree_node* root){
+	if(root == NULL) return;
+	node_child_list* mover = root->children;
+	while(mover != NULL){
+		node_child_list* temp = mover;
+		mover = mover->next;
+		clean_parse_tree(temp->child);
+		free(temp);
+	}
+	free(root->text);
+	free(root);
+}
+
 void print_productions(parse_tree_node* root, int level){
         if(root == NULL) return;
         print_spaces(level);

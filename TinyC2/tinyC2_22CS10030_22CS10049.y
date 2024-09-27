@@ -23,6 +23,7 @@
         void print_productions(parse_tree_node*, int);
         void print_spaces(int);
         void throw_error(char*);
+        void clean_parse_tree(parse_tree_node*);
 %}
 
 %union {
@@ -472,7 +473,7 @@ constant:
 /* Dummy Start */
 
 tinyC_start:
-        translation_unit        {print_productions($$, 0);}
+        translation_unit        {print_productions($$, 0); clean_parse_tree($$);}
         ;
 
 %%
