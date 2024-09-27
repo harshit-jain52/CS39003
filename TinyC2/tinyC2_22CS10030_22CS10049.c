@@ -1,8 +1,7 @@
 #include "lex.yy.c"
 #include "y.tab.c"
 
-void throw_error(char *err)
-{
+void throw_error(char *err){
     fprintf(stderr, "***Error at line %d: %s\n", yylineno, err);
 }
 
@@ -18,13 +17,13 @@ parse_tree_node* create_node(char* production_text, int num_children, ...) {
 	new_node->children = add_child_node(va_arg(args, parse_tree_node*));
 	node_child_list* mover = new_node->children;
 	int ct = 1;
-        while(ct < num_children){
+	while(ct < num_children){
 		mover->next = add_child_node(va_arg(args, parse_tree_node*));
 		mover = mover->next;
 		ct++;
 	}
-        va_end(args);
-        return new_node;
+	va_end(args);
+	return new_node;
 }
 
 node_child_list* add_child_node(parse_tree_node* data){
@@ -48,20 +47,20 @@ void clean_parse_tree(parse_tree_node* root){
 }
 
 void print_productions(parse_tree_node* root, int level){
-        if(root == NULL) return;
-        print_spaces(level);
-        printf("%s\n", root->text);
-        node_child_list* mover = root->children;
-        while(mover != NULL){
-                print_productions(mover->child, level+1);
-                mover = mover->next;
-        }
+	if(root == NULL) return;
+	print_spaces(level);
+	printf("%s\n", root->text);
+	node_child_list* mover = root->children;
+	while(mover != NULL){
+		print_productions(mover->child, level+1);
+		mover = mover->next;
+	}
 }
 
 void print_spaces(int num){
-        for(int i = 0; i < num; i++) printf("  ");
+    for(int i = 0; i < num; i++) printf("  ");
 }
 
 int main(){
-        yyparse();
+    yyparse();
 }

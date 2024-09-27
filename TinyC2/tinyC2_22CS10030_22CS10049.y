@@ -19,15 +19,15 @@
 
 
 	parse_tree_node* create_node(char *, int, ...);
-        node_child_list* add_child_node(parse_tree_node* );
-        void print_productions(parse_tree_node*, int);
-        void print_spaces(int);
-        void throw_error(char*);
-        void clean_parse_tree(parse_tree_node*);
+    node_child_list* add_child_node(parse_tree_node* );
+    void print_productions(parse_tree_node*, int);
+    void print_spaces(int);
+    void throw_error(char*);
+    void clean_parse_tree(parse_tree_node*);
 %}
 
 %union {
-        char* text;
+    char* text;
 	struct parse_tree_node* node;
 }
 
@@ -478,7 +478,6 @@ tinyC_start:
 
 %%
 
-void yyerror (char * err)
-{
+void yyerror (char * err){
     throw_error(err);
 }
