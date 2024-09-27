@@ -39,12 +39,12 @@
 %type <node> unary_operator assignment_operator
 %type <node> declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer pointer_opt direct_declarator type_qualifier_list type_qualifier_list_opt assignment_expression_opt parameter_type_list identifier_list identifier_list_opt parameter_list parameter_declaration designation designation_opt designator_list designator
 %type <node> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt
-%type <node> translation_unit external_declaration function_definition declaration_list declaration_list_opt
+%type <node> translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start
 %type <text> constant
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
 
-%start translation_unit
+%start tinyC_start
 
 %%
 
@@ -380,7 +380,7 @@ jump_statement:
 /* External Definitions */
 
 translation_unit:
-        external_declaration                    {$$ = create_node("translation_unit -> external_declaration", 1, $1); print_productions($$, 0);}
+        external_declaration                    {$$ = create_node("translation_unit -> external_declaration", 1, $1);}
         | translation_unit external_declaration {$$ = create_node("translation_unit -> translation_unit external_declaration", 2, $1, $2);}
         ;
 
@@ -468,6 +468,13 @@ constant:
         | FLOATING_CONSTANT
         | CHAR_CONSTANT
         ;
+
+/* Dummy Start */
+
+tinyC_start:
+        translation_unit        {print_productions($$, 0);}
+        ;
+
 %%
 
 void yyerror (char * err)

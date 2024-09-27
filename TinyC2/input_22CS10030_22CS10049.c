@@ -1,4 +1,9 @@
+int foo(int x){
+    return sizeof(x);
+}
+
 int main(){
-int a = 10;
-float d = 2.5;
+    int a;
+    foo(a);
+    return 0;
 }
