@@ -3,7 +3,7 @@
 // External Declarations
 extern int globe;
 static double PI = 3.14159;
-const long INF = 1e9;
+volatile long INF = 1e9;
 
 // Function prototype
 _Bool bool_foo(char *val);
@@ -14,7 +14,13 @@ inline void newline(){
     printf("%s\n", str);
 }
 
-int main()
+int KandRstyle(p, q)
+int p, q;
+{
+    return p^q;
+}
+
+int main(int argc, char const *argv[])
 {   
     // Declaration statements
     long int x = 10, iter = 0;
