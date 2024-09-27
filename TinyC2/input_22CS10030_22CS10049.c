@@ -81,8 +81,10 @@ int main(int argc, char const *argv[])
     // Jump Statement
     if(err) {
         goto exit;
-    } else {
+    } else if(!flag) {
         printf("No error\n");
+    } else {
+        printf("Flag error\n");
     }
     
     // Labelled Statement
