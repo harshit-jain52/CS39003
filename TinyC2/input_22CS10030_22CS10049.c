@@ -8,7 +8,7 @@ volatile long INF = 1e9;
 // Function prototype
 _Bool bool_foo(char *val);
 
-// Function definition
+// Function definitions
 inline void newline(){
     auto char* str = "Customized newline function";
     printf("%s\n", str);
@@ -24,8 +24,8 @@ int main(int argc, char const *argv[])
 {   
     // Declaration statements
     long int x = 10, iter = 0;
-    float f = 12.34e-5 + 90;
-    char c = '$';
+    float f1 = 12.34e-5 + 90;
+    char _c = '$';
     char str[] = "Hello, Tiny World!";
     int arr[5] = {2, 3, 5, 7, 11};
     register int fast_var = 50;
@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
     // Function Call
     _Bool err = bool_foo(str);
 
-    // Selection Statements
+    // Selection Statements & Jump Statements
     switch(x) {
         case 5:
             printf("x is 5\n");
@@ -78,7 +78,6 @@ int main(int argc, char const *argv[])
             break;
     }
 
-    // Jump Statement
     if(err) {
         goto exit;
     } else if(!flag) {
