@@ -6,7 +6,7 @@ static double PI = 3.14159;
 volatile long INF = 1e9;
 
 // Function prototype
-_Bool bool_foo(char *val);
+_Bool bool_foo(char *val, ...);
 
 // Function definitions
 inline void newline(){
