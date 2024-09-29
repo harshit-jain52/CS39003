@@ -10,4 +10,4 @@ run: all input${ROLL}.c
 	./a.out < input${ROLL}.c > output${ROLL}.txt
 
 clean:
-	-rm -f a.out y.tab.h y.tab.c lex.yy.c
+	-rm -f a.out y.tab.* lex.yy.c output${ROLL}.txt
