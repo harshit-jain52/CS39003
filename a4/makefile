@@ -1,11 +1,11 @@
 all:
-	yacc -d poly.y
-	lex poly.l
-	gcc polyutils.c
+	bison -d poly.y
+	flex -o poly.yy.c poly.l
+	gcc -o poly.out polyutils.c
 
 run: all
-	./a.out < sample.txt > output.txt
+	./poly.out < sample.txt > output.txt
 
 clean:
-	rm -f lex.yy.c y.tab.* *.out output.txt
+	rm -f *.yy.c *.tab.* *.out output.txt
 

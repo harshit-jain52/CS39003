@@ -1,5 +1,5 @@
-#include "lex.yy.c"
-#include "y.tab.c"
+#include "poly.yy.c"
+#include "poly.tab.c"
 #include <setjmp.h>
 typedef long long ll;
 
