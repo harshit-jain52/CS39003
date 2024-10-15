@@ -34,24 +34,25 @@
         } type;
         int val;
     };
-
     typedef struct arg_* argtp;
     
     symbolTable ST = NULL;                              // Global symbol table
-    bool* RT = NULL;
-    int MEMT = 0;
-    struct symnode* addSymbol(char *);
-    symbolTable setIdNum(symbolTable,char*, int);
-    symbolTable setIdId(symbolTable,char*, char*);
-    symbolTable setIdExpr(symbolTable,char*, argtp);
-    int setRegId(symbolTable, char*);
-    int findId(symbolTable, char *);
-    argtp createArg(int, int);
-    argtp createExpr(int, argtp, argtp);
-    void standaloneExpr(argtp);
-    int findFreeReg();
-    void genArgPrn(char *, argtp);
+    bool* RT = NULL;                                    // Global boolean array to check if register is free
+    int MEMT = 0;                                       // Global counter for memory offset
+    struct symnode* addSymbol(char *);                  // Add symbol to symbol table
+    symbolTable setIdNum(symbolTable,char*, int);       // Set identifier to number
+    symbolTable setIdId(symbolTable,char*, char*);      // Set identifier to identifier
+    symbolTable setIdExpr(symbolTable,char*, argtp);    // Set identifier to expression
+    int setRegId(symbolTable, char*);                   // Set register for identifier
+    int findId(symbolTable, char *);                    // Find identifier in symbol table
+    argtp createArg(int, int);                          // Create argument node
+    argtp createExpr(int, argtp, argtp);                // Create expression node 
+    void standaloneExpr(argtp);                         // Print standalone expression
+    int findFreeReg();                                  // Find first free register
+    void genArgPrn(char *, argtp);                      // Generate argument string to print
     void throwError(char*);                             // Print error message and exit parse environment
+    void freeSymTable(symbolTable);                     // Free symbol table
+    void freeArg(argtp);                                // Free argument
 
 %}
 
@@ -61,7 +62,7 @@
     struct arg_* argtp;
 }
 
-%token <num> NUM EXPO
+%token <num> NUM EXPO '+' '-' '*' '/' '%'
 %token <text> ID
 %token SET
 

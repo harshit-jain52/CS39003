@@ -61,7 +61,7 @@ symbolTable setIdExpr(symbolTable T, char* id, argtp arg){
         if(!strcmp(mover->id.name,id)){
             printf("\tMEM[%d] = %s;\n", mover->id.offset,prn);
             printf("\tmprn(MEM,%d);\n",mover->id.offset);
-            if(arg->type==REG_IDX) RT[arg->val] = false;
+            freeArg(arg);
             return T;
         }
         mover = mover->next;
@@ -70,7 +70,7 @@ symbolTable setIdExpr(symbolTable T, char* id, argtp arg){
     struct symnode* p = addSymbol(id);
     printf("\tMEM[%d] = %s;\n", p->id.offset,prn);
     printf("\tmprn(MEM,%d);\n",p->id.offset);
-    if(arg->type==REG_IDX) RT[arg->val] = false;
+    freeArg(arg);
 
     p->next=T;
 
@@ -112,7 +112,6 @@ int findId(symbolTable T, char* id){
     return MEMT++;
 }
 
-
 argtp createArg(int type, int val){
     struct arg_* a = (struct arg_*)malloc(sizeof(struct arg_));
     a->type = type;
@@ -135,8 +134,8 @@ argtp createExpr(int op, argtp arg1, argtp arg2){
     char prn0[10], prn1[10], prn2[10];
     genArgPrn(prn1, arg1);
     genArgPrn(prn2, arg2);
-    if(arg1->type==REG_IDX) RT[arg1->val] = false;
-    if(arg2->type==REG_IDX) RT[arg2->val] = false;
+    freeArg(arg1);
+    freeArg(arg2);
     argtp a = newArg();
     genArgPrn(prn0,a);
 
@@ -182,6 +181,18 @@ void standaloneExpr(argtp expr){
     RT[expr->val] = false;
 }
 
+void freeSymTable(symbolTable T){
+    if(T==NULL) return;
+    freeSymTable(T->next);
+    free(T->id.name);
+    free(T);
+}
+
+void freeArg(argtp arg){
+    if(arg->type==REG_IDX) RT[arg->val] = false;
+    free(arg);
+}
+
 int main(){
     RT = (bool *)calloc(RSIZE,sizeof(bool));
 
@@ -195,4 +206,5 @@ int main(){
     }
     else printf("\n\t//---Intermediate Code Generation Failed\n");
     printf("\n\texit(0);\n}\n");
+    freeSymTable(ST);
 }
