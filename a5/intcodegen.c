@@ -10,49 +10,7 @@ void throwError(char *err)
     longjmp(parseEnv, 1);
 }
 
-symbolTable setIdNum(symbolTable T, char* id, int num){
-    symbolTable mover = T;
-    while(mover){
-        if(!strcmp(mover->id.name,id)){
-            printf("\tMEM[%d] = %d;\n", mover->id.offset,num);
-            printf("\tmprn(MEM,%d);\n",mover->id.offset);
-            return T;
-        }
-        mover = mover->next;
-    }
-
-    struct symnode* p = addSymbol(id);
-    printf("\tMEM[%d] = %d;\n", p->id.offset,num);
-    printf("\tmprn(MEM,%d);\n",p->id.offset);
-
-    p->next=T;
-
-    return p;
-}
-
-symbolTable setIdId(symbolTable T, char* id1, char* id2){
-    symbolTable mover = T;
-    int reg = setRegId(T, id2);
-    RT[reg]=false;
-    while(mover){
-        if(!strcmp(mover->id.name,id1)){
-            printf("\tMEM[%d] = R[%d];\n", mover->id.offset,reg);
-            printf("\tmprn(MEM,%d);\n",mover->id.offset);
-            return T;
-        }
-        mover = mover->next;
-    }
-
-    struct symnode* p = addSymbol(id1);
-    printf("\tMEM[%d] = R[%d];\n", p->id.offset,reg);
-    printf("\tmprn(MEM,%d);\n",p->id.offset);
-
-    p->next=T;
-
-    return p;
-}
-
-symbolTable setIdExpr(symbolTable T, char* id, argtp arg){
+symbolTable setId(symbolTable T, char* id, argtp arg){
     symbolTable mover = T;
     char prn[10];
     genArgPrn(prn,arg);
@@ -104,7 +62,6 @@ int findId(symbolTable T, char* id){
     while(mover){
         if(!strcmp(mover->id.name,id)){
             return mover->id.offset;
-            break;
         }
         mover = mover->next;
     }
@@ -178,7 +135,7 @@ void genArgPrn(char *prn, argtp arg){
 
 void standaloneExpr(argtp expr){
     printf("\teprn(R,%d);\n",expr->val);
-    RT[expr->val] = false;
+    freeArg(expr);
 }
 
 void freeSymTable(symbolTable T){

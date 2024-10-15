@@ -40,9 +40,7 @@
     bool* RT = NULL;                                    // Global boolean array to check if register is free
     int MEMT = 0;                                       // Global counter for memory offset
     struct symnode* addSymbol(char *);                  // Add symbol to symbol table
-    symbolTable setIdNum(symbolTable,char*, int);       // Set identifier to number
-    symbolTable setIdId(symbolTable,char*, char*);      // Set identifier to identifier
-    symbolTable setIdExpr(symbolTable,char*, argtp);    // Set identifier to expression
+    symbolTable setId(symbolTable,char*, argtp);        // Set identifier
     int setRegId(symbolTable, char*);                   // Set register for identifier
     int findId(symbolTable, char *);                    // Find identifier in symbol table
     argtp createArg(int, int);                          // Create argument node
@@ -73,30 +71,30 @@
 
 %%
 
-program:
-            stmt program
+program
+            : stmt program
             | stmt
             ;
 
-stmt:
-            setstmt                 
+stmt
+            : setstmt                 
             | exprstmt              
             ;
 
-setstmt:
-            '(' SET ID NUM ')'          {ST = setIdNum(ST,$3,$4);}
-            | '(' SET ID ID ')'         {ST = setIdId(ST,$3,$4);}
-            | '(' SET ID expr ')'       {ST = setIdExpr(ST,$3,$4);}
+setstmt
+            : '(' SET ID NUM ')'        {ST = setId(ST,$3,createArg(NUM_VAL,$4));}
+            | '(' SET ID ID ')'         {ST = setId(ST,$3,createArg(REG_IDX,setRegId(ST,$4)));}
+            | '(' SET ID expr ')'       {ST = setId(ST,$3,$4);}
             ;
 
-exprstmt:   expr                    {standaloneExpr($1);}
+exprstmt    : expr                      {standaloneExpr($1);}
             ;
 
-expr:       '(' op arg arg ')'      {$$ = createExpr($2, $3, $4);}
+expr        : '(' op arg arg ')'        {$$ = createExpr($2, $3, $4);}
             ;
 
-op:
-            '+'                     
+op
+            : '+'                     
             | '-'     
             | '*'      
             | '/'      
@@ -105,9 +103,10 @@ op:
             ;
 
 
-arg:        ID                      {$$ = createArg(MEM_OFFSET, findId(ST, $1));}
-            | NUM                   {$$ = createArg(NUM_VAL, $1);}                
-            | expr                  {$$ = $1;}
+arg         
+            : ID                        {$$ = createArg(MEM_OFFSET, findId(ST, $1));}
+            | NUM                       {$$ = createArg(NUM_VAL, $1);}                
+            | expr                      {$$ = $1;}
             ;
 %%
 
