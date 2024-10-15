@@ -204,7 +204,7 @@ int main(){
     if(setjmp(parseEnv)==0){
         yyparse();
     }
-    else printf("\n\t//---Intermediate Code Generation Failed\n");
+    else printf("\n\terrprn();\n");
     printf("\n\texit(0);\n}\n");
     freeSymTable(ST);
 }

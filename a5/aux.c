@@ -15,3 +15,7 @@ int pwr(int a, int b){
     }
     return ans;
 }
+
+void errprn(){
+    printf("---Intermediate Code Generation Failed\n");
+}
