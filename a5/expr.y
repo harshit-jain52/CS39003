@@ -36,11 +36,11 @@
     };
     typedef struct arg_* argtp;
     
-    symbolTable ST = NULL;                              // Global symbol table
-    bool* RT = NULL;                                    // Global boolean array to check if register is free
-    int MEMT = 0;                                       // Global counter for memory offset
+    symbolTable ST;                                     // Global symbol table
+    bool* RT;                                           // Global boolean array to check if register is free
+    int MEMT;                                           // Global counter for memory offset
     struct symnode* addSymbol(char *);                  // Add symbol to symbol table
-    symbolTable setId(symbolTable,char*, argtp);        // Set identifier
+    void setId(symbolTable,char*, argtp);               // Set identifier
     int setRegId(symbolTable, char*);                   // Set register for identifier
     int findId(symbolTable, char *);                    // Find identifier in symbol table
     argtp createArg(int, int);                          // Create argument node
@@ -82,9 +82,9 @@ stmt
             ;
 
 setstmt
-            : '(' SET ID NUM ')'        {ST = setId(ST,$3,createArg(NUM_VAL,$4));}
-            | '(' SET ID ID ')'         {ST = setId(ST,$3,createArg(REG_IDX,setRegId(ST,$4)));}
-            | '(' SET ID expr ')'       {ST = setId(ST,$3,$4);}
+            : '(' SET ID NUM ')'        {setId(ST,$3,createArg(NUM_VAL,$4));}
+            | '(' SET ID ID ')'         {setId(ST,$3,createArg(REG_IDX,setRegId(ST,$4)));}
+            | '(' SET ID expr ')'       {setId(ST,$3,$4);}
             ;
 
 exprstmt    : expr                      {standaloneExpr($1);}

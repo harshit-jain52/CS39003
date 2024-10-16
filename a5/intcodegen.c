@@ -10,29 +10,14 @@ void throwError(char *err)
     longjmp(parseEnv, 1);
 }
 
-symbolTable setId(symbolTable T, char* id, argtp arg){
-    symbolTable mover = T;
+void setId(symbolTable T, char* id, argtp arg){
     char prn[10];
     genArgPrn(prn,arg);
-
-    while(mover){
-        if(!strcmp(mover->id.name,id)){
-            printf("\tMEM[%d] = %s;\n", mover->id.offset,prn);
-            printf("\tmprn(MEM,%d);\n",mover->id.offset);
-            freeArg(arg);
-            return T;
-        }
-        mover = mover->next;
-    }
-
-    struct symnode* p = addSymbol(id);
-    printf("\tMEM[%d] = %s;\n", p->id.offset,prn);
-    printf("\tmprn(MEM,%d);\n",p->id.offset);
+    int offset = findId(T,id);
+    
+    printf("\tMEM[%d] = %s;\n", offset,prn);
+    printf("\tmprn(MEM,%d);\n",offset);
     freeArg(arg);
-
-    p->next=T;
-
-    return p;
 }
 
 int setRegId(symbolTable T, char* id){
@@ -66,7 +51,10 @@ int findId(symbolTable T, char* id){
         mover = mover->next;
     }
 
-    return MEMT++;
+    struct symnode* p = addSymbol(id);
+    p->next=T->next;
+    T->next=p;
+    return p->id.offset;
 }
 
 argtp createArg(int type, int val){
@@ -152,6 +140,8 @@ void freeArg(argtp arg){
 
 int main(){
     RT = (bool *)calloc(RSIZE,sizeof(bool));
+    ST = addSymbol("$$");
+    MEMT = 0;
 
     printf("#include <stdio.h>\n#include <stdlib.h>\n#include \"aux.c\"\n\n");
     printf("int main()\n{\n");
