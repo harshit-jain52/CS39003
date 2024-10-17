@@ -39,12 +39,13 @@
     symbolTable ST;                                     // Global symbol table
     bool* RT;                                           // Global boolean array to check if register is free
     int MEMT;                                           // Global counter for memory offset
+    int TEMP;                                           // Global counter for temporaries in memory
     struct symnode* addSymbol(char *);                  // Add symbol to symbol table
     void setId(symbolTable,char*, argtp);               // Set identifier
-    int setRegId(symbolTable, char*);                   // Set register for identifier
+    int setRegId(int);                                  // Set register for mem offset
     int findId(symbolTable, char *);                    // Find identifier in symbol table
     argtp createArg(int, int);                          // Create argument node
-    argtp createExpr(int, argtp, argtp);                // Create expression node 
+    argtp createExpr(int, argtp, argtp, symbolTable);   // Create expression node 
     void standaloneExpr(argtp);                         // Print standalone expression
     int findFreeReg();                                  // Find first free register
     void genArgPrn(char *, argtp);                      // Generate argument string to print
@@ -83,14 +84,14 @@ stmt
 
 setstmt
             : '(' SET ID NUM ')'        {setId(ST,$3,createArg(NUM_VAL,$4));}
-            | '(' SET ID ID ')'         {setId(ST,$3,createArg(REG_IDX,setRegId(ST,$4)));}
+            | '(' SET ID ID ')'         {setId(ST,$3,createArg(REG_IDX,setRegId(findId(ST,$4))));}
             | '(' SET ID expr ')'       {setId(ST,$3,$4);}
             ;
 
 exprstmt    : expr                      {standaloneExpr($1);}
             ;
 
-expr        : '(' op arg arg ')'        {$$ = createExpr($2, $3, $4);}
+expr        : '(' op arg arg ')'        {$$ = createExpr($2, $3, $4, ST);}
             ;
 
 op

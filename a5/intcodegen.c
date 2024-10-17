@@ -20,9 +20,7 @@ void setId(symbolTable T, char* id, argtp arg){
     freeArg(arg);
 }
 
-int setRegId(symbolTable T, char* id){
-    int offset = findId(T,id);
-
+int setRegId(int offset){
     if(RT[0]==false){
         printf("\tR[0] = MEM[%d];\n",offset);
         RT[0]=true;
@@ -75,7 +73,7 @@ int findFreeReg(){
     return 0;
 }
 
-argtp createExpr(int op, argtp arg1, argtp arg2){
+argtp createExpr(int op, argtp arg1, argtp arg2, symbolTable T){
     char prn0[10], prn1[10], prn2[10];
     genArgPrn(prn1, arg1);
     genArgPrn(prn2, arg2);
@@ -90,7 +88,10 @@ argtp createExpr(int op, argtp arg1, argtp arg2){
     if(a->type==REG_IDX && a->val==0){
         printf("\tMEM[%d] = R[0];\n",MEMT);
         RT[0] = false;
-        a = createArg(MEM_OFFSET,MEMT++);
+        char temp[10];
+        sprintf(temp,"$%d",TEMP++);
+        a->val = findId(T,temp);
+        a->type = MEM_OFFSET;
     }
     return a;
 }
@@ -105,18 +106,8 @@ void genArgPrn(char *prn, argtp arg){
             break;
         case MEM_OFFSET:
             arg->type = REG_IDX;
-            if(RT[0]==false){
-                printf("\tR[0] = MEM[%d];\n",arg->val);
-                sprintf(prn,"R[0]");
-                arg->val=0;
-                RT[0]=true;
-            }
-            else{
-                printf("\tR[1] = MEM[%d];\n",arg->val);
-                sprintf(prn,"R[1]");
-                arg->val=1;
-                RT[1]=true;
-            }
+            arg->val = setRegId(arg->val);
+            sprintf(prn,"R[%d]",arg->val);
             break;
     }
 }
@@ -138,10 +129,16 @@ void freeArg(argtp arg){
     free(arg);
 }
 
+// void printSymTable(symbolTable T){
+//     if(T==NULL) return;
+//     printf("%s %d\n",T->id.name,T->id.offset);
+//     printSymTable(T->next);
+// }
+
 int main(){
     RT = (bool *)calloc(RSIZE,sizeof(bool));
-    ST = addSymbol("$$");
-    MEMT = 0;
+    MEMT = -1; TEMP = 1;
+    ST = addSymbol("$0");
 
     printf("#include <stdio.h>\n#include <stdlib.h>\n#include \"aux.c\"\n\n");
     printf("int main()\n{\n");
