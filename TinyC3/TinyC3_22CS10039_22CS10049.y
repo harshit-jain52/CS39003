@@ -22,7 +22,7 @@
 %type <node> primary_expression expression postfix_expression argument_expression_list argument_expression_list_opt type_name initializer_list assignment_expression unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression constant_expression
 %type <node> unary_operator assignment_operator
 %type <node> declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer direct_declarator type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
-%type <node> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt loop_statement
+%type <node> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt expression_opt
 %type <node> translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
 %type <text> constant
 %nonassoc PSEUDO_ELSE
@@ -366,7 +366,7 @@ labeled_statement
         ;
 
 compound_statement
-        : LBRACE X CT block_item_list_opt RBRACE       { }
+        : LBRACE CB CT block_item_list_opt RBRACE       { }
         ;
 
 block_item_list
@@ -385,9 +385,12 @@ block_item
         ;
 
 expression_statement
-        : expression SEMICOLON      {$$ = $1;}
-        | SEMICOLON                 {/*New expression*/}
+        : expression_opt SEMICOLON      {$$ = $1;}
         ;
+
+expression_opt
+        : expression                    {$$ = $1;}
+        | {/* Empty */}                 { /*New Expression*/ }
 
 selection_statement
         : IF LPAREN expression N RPAREN M statement N  %prec PSEUDO_ELSE        { }
@@ -396,22 +399,17 @@ selection_statement
         ;
 
 iteration_statement
-        : WHILE W LPAREN X CT M expression RPAREN M loop_statement                                                                  { }
-        | WHILE W LPAREN X CT M expression RPAREN M LBRACE M block_item_list_opt RBRACE                                             { }
-        | DO D M loop_statement M WHILE LPAREN expression RPAREN SEMICOLON                                                          { }
-        | DO D M LBRACE M block_item_list_opt RBRACE M WHILE LPAREN expression RPAREN SEMICOLON                                     { }
-        | FOR F LPAREN X CT declaration M expression_statement M expression N RPAREN M loop_statement                               { }
-        | FOR F LPAREN X CT expression_statement M expression_statement M expression N RPAREN M loop_statement                      { }
-        | FOR F LPAREN X CT declaration M expression_statement M expression N RPAREN M LBRACE block_item_list_opt RBRACE            { }
-        | FOR F LPAREN X CT expression_statement M expression_statement M expression N RPAREN M LBRACE block_item_list_opt RBRACE   { }
+        : WHILE M LPAREN expression RPAREN M statement                                                              { }
+        | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON                                                 {}
+        | FOR LPAREN expression_opt SEMICOLON M expression_opt SEMICOLON M expression_opt N RPAREN M statement      { }
+        | FOR LPAREN declaration expression_opt SEMICOLON expression_opt RPAREN statement                           {/*Ignore*/}
         ;
 
 jump_statement
         : GOTO IDENTIFIER SEMICOLON             { /*Ignore*/ }
         | CONTINUE SEMICOLON                    { /*New statement*/}
         | BREAK SEMICOLON                       { /*New statement*/}
-        | RETURN SEMICOLON                      {/*New statement and emit return*/}
-        | RETURN expression SEMICOLON           {/*New statement and emit return*/}
+        | RETURN expression_opt SEMICOLON       {/*New statement and emit return*/}
         ;
 
 /* External Definitions */
@@ -443,14 +441,6 @@ declaration_list_opt
 
 /* New Non-Terminals */
 
-loop_statement
-    : labeled_statement             { /*Ignore*/ }
-    | expression_statement          {/*New Statement*/}
-    | selection_statement           {$$ = $1; /*Simple Assignment*/}
-    | iteration_statement           {$$ = $1; /*Simple Assignment*/}
-    | jump_statement                {$$ = $1; /*Simple Assignment*/}
-    ;
-
 M   : %empty {/* For backpatching */}
     ;
 
@@ -460,18 +450,8 @@ N   : %empty {/*For control flow and backpatching*/}
 CT  : %empty {/* Changing the sym table at functions */}
     ;
 
-X   : %empty { /*Create nested symbols for nested blocks*/}
+CB  : %empty { /*Create nested symbols for nested blocks*/}
     ;
-
-W   : %empty {/*Loop block name*/}
-    ;
-
-D   : %empty {/*Loop block name*/}
-    ;
-
-F   : %empty {/*Loop block name*/}
-    ;
-
 
 /* Dummy Start */
 
@@ -481,6 +461,6 @@ tinyC_start:
 
 %%
 
-void yyerror (char * err){
-    throw_error(err);
+void yyerror(const char* s) {
+    printf("ERROR [Line %d] : %s, unable to parse : %s\n", yylineno, s, yytext);
 }

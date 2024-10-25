@@ -10,29 +10,42 @@ using namespace std;
 #define __FLOAT_SZ 8
 #define __PTR_SZ 4
 
-map<string, int> sizeMap = {
-    {"void", __VOID_SZ},
-    {"char", __CHAR_SZ},
-    {"int", __INT_SZ},
-    {"float", __FLOAT_SZ},
-    {"ptr", __PTR_SZ}
+enum TYPE {
+    TYPE_VOID,
+    TYPE_CHAR,
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_PTR,
+    TYPE_FUNC,
+    TYPE_ARRAY,
+    TYPE_BLOCK
 };
-// typedef enum type_ {
-//     TYPE_VOID,
-//     TYPE_CHAR,
-//     TYPE_INT,
-//     TYPE_FLOAT,
-//     TYPE_PTR
-// }type_;
+
+map<TYPE, int> sizeMap = {
+    {TYPE_VOID, __VOID_SZ},
+    {TYPE_CHAR, __CHAR_SZ},
+    {TYPE_INT, __INT_SZ},
+    {TYPE_FLOAT, __FLOAT_SZ},
+    {TYPE_PTR, __PTR_SZ}
+};
+
+map<TYPE, string> strMap = {
+    {TYPE_VOID, "void"},
+    {TYPE_CHAR, "char"},
+    {TYPE_INT, "int"},
+    {TYPE_FLOAT, "float"},
+    {TYPE_FUNC, "function"}
+};
 
 class SymbolType {
 public:
-    string type; 
+    TYPE type; 
     int width; // size of the type
     SymbolType* arrType;
 
-    SymbolType(string, int = 1, SymbolType* = NULL);
+    SymbolType(TYPE, int = 1, SymbolType* = NULL);
     int getSize();
+    string getType();
 };
 
 class Symbol {
@@ -42,9 +55,11 @@ public:
     string initial_value;
     int size;
     int offset;
-    SymbolType* nestedTable;
+    SymbolTable* nestedTable;
 
-    Symbol(string, string, int = 0, SymbolType* = NULL);
+    Symbol(string, TYPE = TYPE_INT, string="-");
+    Symbol* update(SymbolType*);
+    // Symbol* convertType(TYPE);
 
 };
 
@@ -52,13 +67,11 @@ class SymbolTable {
 public:
     string name;
     int count;
-    list<Symbol> table;
+    list<Symbol> symbols;
     SymbolTable* parent;
     
-    SymbolTable(string = "global");
-
+    SymbolTable(string = "NULL", SymbolTable* = NULL);
     Symbol* lookup(string);
-    Symbol* gentemp(SymbolType*, string = ""); 
 
     void print();
     void update();
@@ -69,7 +82,7 @@ public:
     string op;
     string arg1;
     string arg2;
-    string result;   
+    string res;   
 
     Quadruple(string, string, string = "=", string = "");
     Quadruple(string, int, string = "=", string = "");
@@ -80,10 +93,33 @@ public:
 
 class QuadTable {
 public:
-    vector<Quadruple> quads;
-    
+    vector<Quadruple*> quads;
+
     void print();
 };
 
+class Expression {
+public:
+    Symbol *symbol;
+    enum type_ {NONBOOLEAN, BOOLEAN} type;
+    list<int> truelist;
+    list<int> falselist;
+    list<int> nextlist;
 
+    void convtoInt();
+    void convtoBool();
+};
+
+class Array{
+public:
+    Symbol* loca;
+    enum type_ {ARRAY, POINTER, NONE} type;
+    Symbol* symbol;
+    SymbolType *childType; 
+};
+
+class Statement {
+public:
+    list<int>nextlist;
+};
 
