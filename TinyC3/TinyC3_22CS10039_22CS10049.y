@@ -1,17 +1,17 @@
 %{	
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <stdarg.h>
-
+	#include "TinyC3_22CS10030_22CS10049.h"
     extern int yylex();
+    extern char* yytext;
     extern int yylineno;
-    void yyerror ( char * );  
-
+    void yyerror (char *);  
 %}
 
 %union {
-    char* text;
-	struct parse_tree_node* node;
+    string text;
+    int num;
+    Expression* expr;
+    Array* arr;
+    Statement* stmt;
 }
 
 %token <text> IDENTIFIER FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
@@ -19,12 +19,14 @@
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND ASTERISK PLUS MINUS TILDE NOT DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
 %token ENUM STRUCT UNION TYPEDEF HASH
-%type <node> primary_expression expression postfix_expression argument_expression_list argument_expression_list_opt type_name initializer_list assignment_expression unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression constant_expression
-%type <node> unary_operator assignment_operator
-%type <node> declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer direct_declarator type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
-%type <node> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement block_item block_item_list block_item_list_opt expression_opt
-%type <node> translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
-%type <text> constant
+%type <expr> constant expression expression_opt expression_statement primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
+%type <arr> postfix_expression unary_expression cast_expression
+%type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement  jump_statement block_item block_item_list block_item_list_opt
+%type <num> argument_expression_list argument_expression_list_opt unary_operator
+%type type_name initializer_list constant_expression
+%type assignment_operator
+%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer direct_declarator type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
+%type translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
 
@@ -34,34 +36,98 @@
 
 /* Expressions */
 
-primary_expression:
-        IDENTIFIER                      { }
-        | constant                      { }
-        | STRING_LITERAL                { }
+primary_expression
+        : IDENTIFIER
+        { 
+            $$ = new Expression(currentST->lookup($1));
+            $$->type = Expression::NONBOOL;
+        }
+        | constant                      {$$ = $1;}
+        | STRING_LITERAL
+        {
+            $$ = new Expression(gentemp(TYPE_PTR, $1));
+            $$->type = Expression::NONBOOL;
+        }
         | LPAREN expression RPAREN      {$$ = $2; /* Simple Assignment */}
         ;
 
-constant:
-        INTEGER_CONSTANT                { }
-        | FLOATING_CONSTANT             { }
-        | CHAR_CONSTANT                 { }
+constant
+        : INTEGER_CONSTANT
+        {
+            $$ = new Expression(gentemp(TYPE_INT, $1));
+            emit("=", $$->symbol->name, $1);
+        }
+        | FLOATING_CONSTANT
+        {
+            $$ = new Expression(gentemp(TYPE_FLOAT, $1));
+            emit("=", $$->symbol->name, $1);
+        }
+        | CHAR_CONSTANT
+        {
+            $$ = new Expression(gentemp(TYPE_CHAR, $1));
+            emit("=", $$->symbol->name, $1);
+        }
         ;
 
-postfix_expression:
-        primary_expression                                              { }
-        | postfix_expression LSQPAREN expression RSQPAREN               { /* Array Declaration */ }
-        | postfix_expression LPAREN argument_expression_list_opt RPAREN { /* Function Call */ }
-        | postfix_expression INC                                        { /* Add 1 */}
-        | postfix_expression DEC                                        { /* Subtract 1 */}
+postfix_expression
+        : primary_expression
+        {
+            $$ = new Array($1->symbol);
+            $$->loca = $$->symbol;
+            $$->childType = $1->symbol->type;
+        }
+        | postfix_expression LSQPAREN expression RSQPAREN
+        {
+            $$ = new Array($1->symbol);
+            $$->loca = gentemp(TYPE_INT);
+            $$->childType = $1->childType->arrType;
+            $$->type = Array::ARRAY;
+
+            if($1->type == Array::ARRAY){
+                Symbol *tempSym = gentemp(TYPE_INT);
+                int sz = $$->childType->getSize();
+                emit("*", tempSym->name, $3->symbol->name, to_string(sz));
+                emit("+", $$->loca->name, $1->loca->name, tempSym->name);
+            }
+            else{
+                int sz = $$->childType->getSize();
+                emit("*", $$->loca->name, $3->symbol->name, to_string(sz));
+            }
+        }
+        | postfix_expression LPAREN argument_expression_list_opt RPAREN
+        {
+            $$ = new Array(gentemp($1->symbol->type->type));
+            emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
+        }
+        | postfix_expression INC
+        {
+            $$ = new Array(gentemp($1->symbol->type->type));
+            emit("=", $$->symbol->name, $1->symbol->name);
+            emit("+", $1->symbol->name, $1->symbol->name, "1");
+        }
+        | postfix_expression DEC
+        {
+            $$ = new Array(gentemp($1->symbol->type->type));
+            emit("=", $$->symbol->name, $1->symbol->name);
+            emit("-", $1->symbol->name, $1->symbol->name, "1");
+        }
         | postfix_expression DOT IDENTIFIER                             { /*Ignore*/ }
         | postfix_expression ARROW IDENTIFIER                           { /*Ignore*/ }
         | LPAREN type_name RPAREN LBRACE initializer_list RBRACE        { /*Ignore*/ }
         | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE  { /*Ignore*/ }
         ;
 
-argument_expression_list:
-        assignment_expression                                           { /* 1 argument */}
-        | argument_expression_list COMMA assignment_expression          { /* 1+ $1 arguments */}
+argument_expression_list
+        : assignment_expression
+        { 
+            $$ = 1;
+            emit("param",$1->symbol->name);
+        }
+        | argument_expression_list COMMA assignment_expression
+        {
+            $$ = 1 + $1;
+            emit("param",$3->symbol->name);
+        }
         ;
 
 argument_expression_list_opt:
@@ -72,9 +138,48 @@ argument_expression_list_opt:
 
 unary_expression:
         postfix_expression                      {$$ = $1;}
-        | INC unary_expression                  { /* Assign and +1 */}
-        | DEC unary_expression                  { /* Assign and -1 */}
-        | unary_operator cast_expression        { /* Do and Assign */}
+        | INC unary_expression
+        {
+            $$ = $2;
+            emit("+", $2->symbol->name, $2->symbol->name, "1");
+        }
+        | DEC unary_expression
+        {
+            $$ = $2;
+            emit("-", $2->symbol->name, $2->symbol->name, "1");
+        }
+        | unary_operator cast_expression
+        {
+            switch($1){
+                case AMPERSAND:
+                    $$ = new Array(gentemp(TYPE_PTR));
+                    $$->symbol->type->arrType = $2->symbol->type;
+                    emit("=&", $$->symbol->name, $2->symbol->name);
+                    break;
+                case ASTERISK:
+                    $$ = new Array(gentemp($2->symbol));
+                    $$->loca = gentemp($2->loca->type->arrType->type);
+                    $$->loca->type->arrType = $2->loca->type->arrType->arrType;
+                    $$->type = Array::POINTER;
+                    emit("=*", $$->loca->name, $2->loca->name);
+                    break;
+                case PLUS:
+                    $$ = $2;
+                    break;
+                case MINUS:
+                    $$ = new Array(gentemp($2->symbol->type->type));
+                    emit("=-", $$->symbol->name, "0", $2->symbol->name);
+                    break;
+                case TILDE:
+                    $$ = new Array(gentemp($2->symbol->type->type));
+                    emit("~", $$->symbol->name, $2->symbol->name);
+                    break;
+                case NOT:
+                    $$ = new Array(gentemp($2->symbol->type->type));
+                    emit("!", $$->symbol->name, $2->symbol->name);
+                    break;
+            }
+        }
         | SIZEOF unary_expression               { /*Ignore*/ }
         | SIZEOF LPAREN type_name RPAREN        { /*Ignore*/ }
         ;
@@ -90,7 +195,7 @@ unary_operator
 
 cast_expression
         : unary_expression                        {$$ = $1;}
-        | LPAREN type_name RPAREN cast_expression {/* New symbol after type change*/}
+        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(currentType));}
         ;
 
 multiplicative_expression

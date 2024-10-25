@@ -101,11 +101,12 @@ public:
 class Expression {
 public:
     Symbol *symbol;
-    enum type_ {NONBOOLEAN, BOOLEAN} type;
+    enum type_ {NONBOOL, BOOL} type;
     list<int> truelist;
     list<int> falselist;
     list<int> nextlist;
 
+    Expression(Symbol* = NULL);
     void convtoInt();
     void convtoBool();
 };
@@ -113,9 +114,11 @@ public:
 class Array{
 public:
     Symbol* loca;
-    enum type_ {ARRAY, POINTER, NONE} type;
+    enum type_ {NONE, ARRAY, POINTER} type;
     Symbol* symbol;
     SymbolType *childType; 
+
+    Array(Symbol* = NULL);
 };
 
 class Statement {

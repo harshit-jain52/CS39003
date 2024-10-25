@@ -1,4 +1,4 @@
-#include "TinyC_22CS10030_22CS10049.h"
+#include "TinyC3_22CS10030_22CS10049.h"
 
 /* SymbolType */
 
@@ -75,5 +75,10 @@ void QuadTable::print(){}
 
 /* Expression */
 
+Expression::Expression(Symbol* symbol_): symbol(symbol_) {}
 void Expression::convtoInt(){}
 void Expression::convtoBool(){}
+
+/* Array */
+
+Array::Array(Symbol* symbol_): symbol(symbol_) {}
