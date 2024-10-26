@@ -300,7 +300,7 @@ int main(){
     globalST = new SymbolTable("Global");
     currentST = globalST;
 
-    // yyparse();
+    yyparse();
 
     globalST->update();
     globalST->print();

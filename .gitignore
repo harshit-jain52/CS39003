@@ -4,3 +4,4 @@
 *.tab.h
 *output*.txt
 *.o
+*.gch

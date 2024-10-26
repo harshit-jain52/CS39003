@@ -1,6 +1,8 @@
 #ifndef _TRANSLATOR_H
 #define _TRANSLATOR_H
 
+extern int yyparse();
+
 #include <iostream>
 #include <string>
 #include <cstring>

@@ -19,5 +19,8 @@ lex.yy.o: lex.yy.c
 y.tab.o: y.tab.c
 	g++ -c y.tab.c
 
+test: a.out
+	./a.out < $(BASE)_test.c > $(BASE)_quads.out
+
 clean:
 	-rm -f a.out *.yy.* *.o *.tab.* *.h.gch
