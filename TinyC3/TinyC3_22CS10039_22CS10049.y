@@ -8,10 +8,12 @@
 
 %union {
     string text;
+    string op;
     int num;
     Expression* expr;
     Array* arr;
     Statement* stmt;
+    Symbol* sym;
 }
 
 %token <text> IDENTIFIER FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
@@ -23,9 +25,11 @@
 %type <arr> postfix_expression unary_expression cast_expression
 %type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement  jump_statement block_item block_item_list block_item_list_opt
 %type <num> argument_expression_list argument_expression_list_opt unary_operator
+%type <sym> initializer direct_declarator init_declarator declarator
+%type <op> relop mulop addop shiftop eqop
 %type type_name initializer_list constant_expression
 %type assignment_operator
-%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier init_declarator declarator initializer specifier_qualifier_list specifier_qualifier_list_opt pointer direct_declarator type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
+%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt pointer type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
 %type translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
@@ -199,75 +203,277 @@ cast_expression
         ;
 
 multiplicative_expression
-        : cast_expression                                       { }
-        | multiplicative_expression ASTERISK cast_expression    { }
-        | multiplicative_expression DIV cast_expression         { }
-        | multiplicative_expression MOD cast_expression         { }
+        : cast_expression
+        {
+            if($1->type == Array::ARRAY){
+                SymbolType *baseType = $1->symbol->type;
+                while(baseType->arrType != NULL) baseType = baseType->arrType;
+                $$ = new Expression(gentemp(baseType->type));
+                emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
+            }
+            else if($1->type == Array::POINTER){
+                $$ = new Expression($1->loca);
+            }
+            else{
+                $$ = new Expression($1->symbol);
+            }
+        }
+        | multiplicative_expression mulop cast_expression
+        {
+            SymbolType *baseType = $1->symbol->type;
+            while(baseType->arrType != NULL)
+                baseType = baseType->arrType;
+
+            Symbol *temp;
+
+            if($3->type == Array::ARRAY){
+                temp = gentemp(baseType->type);
+                emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
+            } 
+            else if($3->type == Array::POINTER){
+                temp = $3->loca;
+            }
+            else{
+                temp = $3->symbol;
+            }
+
+            if(typeCheck($1->symbol, temp)){
+                $$ = new Expression();
+                $$->symbol = gentemp($1->symbol->type->type);
+                emit($2, $$->symbol->name, $1->symbol->name, temp->name);
+            } 
+            else{
+                yyerror("Type mismatch!");
+            }
+        }
+        ;
+
+mulop
+        : ASTERISK  { $$ = "*"; }
+        | DIV       { $$ = "/"; }
+        | MOD       { $$ = "%"; }
         ;
 
 additive_expression
         : multiplicative_expression                             {$$ = $1; /* Simple Assignment */}
-        | additive_expression PLUS multiplicative_expression    { }
-        | additive_expression MINUS multiplicative_expression   { }
+        | additive_expression addop multiplicative_expression
+        {   
+            if(typeCheck($1->symbol, $3->symbol)) {
+                $$ = new Expression(gentemp($1->symbol->type->type););
+                emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            } 
+            else {
+                yyerror("Type mismatch!");
+            }
+        }
+        ;
+
+addop
+        : PLUS  { $$ = "+"; }
+        | MINUS { $$ = "-"; }
         ;
 
 shift_expression
         : additive_expression                                   {$$ = $1; /* Simple Assignment */}
-        | shift_expression LEFT_SHIFT additive_expression       { }
-        | shift_expression RIGHT_SHIFT additive_expression      { }
+        | shift_expression shiftop additive_expression
+        { 
+            if($3->symbol->type->type == TYPE_INT) {
+                $$ = new Expression(gentemp(TYPE_INT););
+                emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            } 
+            else {
+                yyerror("<<: Type mismatch!");
+            }
+        }
+        ;
+
+shiftop
+        : LEFT_SHIFT    { $$ = "<<"; }
+        | RIGHT_SHIFT   { $$ = ">>"; }
         ;
 
 relational_expression
         : shift_expression                              {$$ = $1; /* Simple Assignment */}
-        | relational_expression LT shift_expression     { }
-        | relational_expression GT shift_expression     { }
-        | relational_expression LE shift_expression     { }
-        | relational_expression GE shift_expression     { }
+        | relational_expression relop shift_expression
+        {   
+            if(typeCheck($1->symbol, $3->symbol)) {
+                $$ = new Expression();
+                $$->type = Expression::BOOL;
+                $$->truelist = makelist(nextinstr());
+                $$->falselist = makelist(nextinstr() + 1);
+                emit($2, "", $1->symbol->name, $3->symbol->name);
+                emit("goto", "");
+            } 
+            else {
+                yyerror("Type mismatch!");
+            }
+        }
+        ;
+
+relop
+        : LT    { $$ = "<"; }
+        | GT    { $$ = ">"; }
+        | LE    { $$ = "<="; }
+        | GE    { $$ = ">="; }
         ;
 
 equality_expression
         : relational_expression                         {$$ = $1; /* Simple Assignment */}
-        | equality_expression EQ relational_expression  { }
-        | equality_expression NE relational_expression  { }
+        | equality_expression eqop relational_expression
+        { 
+            if(typeCheck($1->symbol, $3->symbol)) {
+                $1->convtoInt();
+                $3->convtoInt();
+
+                $$ = new Expression();
+                $$->type = Expression::BOOL;
+                $$->truelist = makelist(nextinstr());
+                $$->falselist = makelist(nextinstr() + 1);
+
+                emit($2, "", $1->symbol->name, $3->symbol->name);
+                emit("goto", "");
+
+            } 
+            else {
+                yyerror("Type mismatch!");
+            }
+        }
+        ;
+
+eqop
+        : EQ    { $$ = "=="; }
+        | NE    { $$ = "!="; }
         ;
 
 and_expression
         : equality_expression                           {$$ = $1; /* Simple Assignment */}
-        | and_expression AMPERSAND equality_expression  { }
+        | and_expression AMPERSAND equality_expression
+        { 
+            $1->convtoInt();
+            $3->convtoInt();
+
+            $$ = new Expression();
+            $$->type = Expression::NONBOOL;
+            $$->symbol = gentemp(TYPE_INT);
+
+            emit("&", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+        }
         ;
 
 exclusive_or_expression
         : and_expression                                {$$ = $1; /* Simple Assignment */}
-        | exclusive_or_expression XOR and_expression    { }
+        | exclusive_or_expression XOR and_expression
+        { 
+            $1->convtoInt();
+            $3->convtoInt();
+
+            $$ = new Expression();
+            $$->type = Expression::NONBOOL;
+            $$->symbol = gentemp(TYPE_INT);
+
+            emit("^", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+        }
         ;
 
 inclusive_or_expression
         : exclusive_or_expression                               {$$ = $1; /* Simple Assignment */}
-        | inclusive_or_expression OR exclusive_or_expression    { }
+        | inclusive_or_expression OR exclusive_or_expression
+        { 
+            $1->convtoInt();
+            $3->convtoInt();
+
+            $$ = new Expression();
+            $$->type = Expression::NONBOOL;
+            $$->symbol = gentemp(TYPE_INT);
+
+            emit("|", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+        }
         ;
 
 logical_and_expression
         : inclusive_or_expression                                           {$$ = $1; /* Simple Assignment */}
-        | logical_and_expression LOGICAL_AND M inclusive_or_expression      { }
+        | logical_and_expression LOGICAL_AND M inclusive_or_expression
+        { 
+            $1->convtoBool();
+            $4->convtoBool();
+
+            $$ = new Expression();
+            $$->type = Expression::BOOL;
+
+            backpatch($1->truelist, $3);
+            $$->truelist = $4->truelist;
+            $$->falselist = merge($1->falselist, $4->falselist);
+        }
         ;
 
 logical_or_expression
         : logical_and_expression                                            {$$ = $1; /* Simple Assignment */}
-        | logical_or_expression LOGICAL_OR M logical_and_expression         { }
+        | logical_or_expression LOGICAL_OR M logical_and_expression
+        {  
+            $1->convtoBool();
+            $4->convtoBool();
+
+            $$ = new Expression();
+            $$->type = Expression::BOOL;
+
+            backpatch($1->falselist, $3);
+            $$->truelist = merge($1->truelist, $4->truelist);
+            $$->falselist = $4->falselist;
+        }
         ;
 
 conditional_expression
         : logical_or_expression                                                             {$$ = $1; /* Simple Assignment */}
-        | logical_or_expression N QUESTION M expression N COLON M conditional_expression    { }
+        | logical_or_expression N QUESTION M expression N COLON M conditional_expression
+        { 
+            $$->symbol = gentemp($5->symbol->type->type);
+            emit("=", $$->symbol->name, $9->symbol->name);
+
+            list<int> l = makelist(nextinstr());
+            emit("goto", "");
+
+            backpatch($6->nextlist, nextinstr());
+            emit("=", $$->symbol->name, $5->symbol->name);
+
+            l = merge(l, makelist(nextinstr()));
+            emit("goto", "");
+
+            backpatch($2->nextlist, nextinstr());
+
+            $1->convtoBool();
+
+            backpatch($1->truelist, $4);
+            backpatch($1->falselist, $8);
+
+            backpatch(l, nextinstr());
+        }
         ;
 
 assignment_expression
         : conditional_expression                                        {$$ = $1; /* Simple Assignment */}
-        | unary_expression assignment_operator assignment_expression    { }
+        | unary_expression assignment_operator assignment_expression
+        {   
+            switch($1->type){
+                case Array::ARRAY:
+                    $3->symbol = $3->symbol->convertType($1->childType->type);
+                    emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
+                    break;
+                case Array::POINTER:
+                    $3->symbol = $3->symbol->convertType($1->loca->type->type);
+                    emit("*=", $1->loca->name, $3->symbol->name);
+                    break;
+                default:
+                    $3->symbol = $3->symbol->convertType($1->symbol->type->type);
+                    emit("=", $1->symbol->name, $3->symbol->name);
+                    break;
+            }
+            
+            $$ = $3;
+        }
         ;
 
 assignment_operator
-        : ASSIGN        { /*Ignore*/ }
+        : ASSIGN        { }
         | MUL_ASSIGN    { /*Ignore*/ }
         | DIV_ASSIGN    { /*Ignore*/ }
         | MOD_ASSIGN    { /*Ignore*/ }
@@ -319,7 +525,11 @@ init_declarator_list_opt
 
 init_declarator
         : declarator                            {$$ = $1;}
-        | declarator ASSIGN initializer         { }
+        | declarator ASSIGN initializer
+        {
+            if($3->initial_value != "-") $1->initial_value = $3->initial_value;
+            emit("=", $1->name, $3->name);
+        }
         ;
 
 storage_class_specifier
@@ -330,10 +540,10 @@ storage_class_specifier
         ;
 
 type_specifier
-        : VOID          { }
-        | CHAR          { }
-        | INT           { }
-        | FLOAT         { }
+        : VOID          { currentType = TYPE_VOID; }
+        | CHAR          { currentType = TYPE_CHAR; }
+        | INT           { currentType = TYPE_INT; }
+        | FLOAT         { currentType = TYPE_FLOAT; }
         | LONG          {  /*Ignore*/ }
         | SHORT         {  /*Ignore*/ }
         | DOUBLE        {  /*Ignore*/ }
