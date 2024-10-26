@@ -127,16 +127,43 @@ void SymbolTable::update(){
 }
 
 void SymbolTable::print(){
+    const char separator    = ' ';
+    const int nameWidth     = 15;
+    const int numWidth      = 15;
+    
+    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
+
     cout << "Symbol Table: " << name << "\tParent: " << (parent==NULL?"NULL":parent->name) << endl;
-    cout << "Name\tType\tInitial Value\tSize\tOffset\tNested Table" << endl;
+
+    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
+
+    cout << left << setw(nameWidth) << setfill(separator) << "Name";
+    cout << left << setw(nameWidth) << setfill(separator) << "Type";
+    cout << left << setw(nameWidth) << setfill(separator) << "Initial Value";
+    cout << left << setw(numWidth) << setfill(separator) << "Size";
+    cout << left << setw(numWidth) << setfill(separator) << "Offset";
+    cout << left << setw(nameWidth) << setfill(separator) << "Nested Table";
+    cout << endl;
+
+    // cout << "Name\tType\tInitial Value\tSize\tOffset\tNested Table" << endl;
 
     vector<SymbolTable*> nestedTables;
 
     for(auto it = symbols.begin(); it != symbols.end(); it++){
-        cout << it->name << "\t" << it->type->getType() << "\t" << it->initial_value << "\t" << it->size << "\t" << it->offset << "\t" << (it->nestedTable==NULL?"NULL":it->nestedTable->name) << endl;
+        cout << left << setw(nameWidth) << setfill(separator) << it->name;
+        cout << left << setw(nameWidth) << setfill(separator) << it->type->getType();
+        cout << left << setw(nameWidth) << setfill(separator) << it->initial_value;
+        cout << left << setw(numWidth) << setfill(separator) << it->size;
+        cout << left << setw(numWidth) << setfill(separator) << it->offset;
+        cout << left << setw(nameWidth) << setfill(separator) << (it->nestedTable==NULL?"NULL":it->nestedTable->name);
+        cout << endl;
+
+        // cout << it->name << "\t" << it->type->getType() << "\t" << it->initial_value << "\t" << it->size << "\t" << it->offset << "\t" << (it->nestedTable==NULL?"NULL":it->nestedTable->name) << endl;
 
         if(it->nestedTable) nestedTables.push_back(it->nestedTable);
     }
+    
+    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
 
     cout << endl;
 

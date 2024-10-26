@@ -9,6 +9,7 @@ extern int yyparse();
 #include <list>
 #include <vector>
 #include <map>
+#include <iomanip>
 using namespace std;
 
 #define __VOID_SZ 0
