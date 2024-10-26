@@ -14,9 +14,11 @@
     Array* arr;
     Statement* stmt;
     Symbol* sym;
+    SymbolType* symtype;
 }
 
-%token <text> IDENTIFIER FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
+%token <text> FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
+%token <sym> IDENTIFIER
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND ASTERISK PLUS MINUS TILDE NOT DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
@@ -26,10 +28,11 @@
 %type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement  jump_statement block_item block_item_list block_item_list_opt
 %type <num> argument_expression_list argument_expression_list_opt unary_operator
 %type <sym> initializer direct_declarator init_declarator declarator
+%type <symtype> pointer
 %type <op> relop mulop addop shiftop eqop
 %type type_name initializer_list constant_expression
 %type assignment_operator
-%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt pointer type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
+%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
 %type translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
@@ -43,7 +46,7 @@
 primary_expression
         : IDENTIFIER
         { 
-            $$ = new Expression(currentST->lookup($1));
+            $$ = new Expression($1);
             $$->type = Expression::NONBOOL;
         }
         | constant                      {$$ = $1;}
@@ -575,17 +578,89 @@ function_specifier
         ;
 
 declarator
-        : pointer direct_declarator     { }
+        : pointer direct_declarator
+        {
+            SymbolType *temp = $1;
+            while(temp->arrType != NULL) 
+                temp = temp->arrType;
+
+            temp->arrType = $2->type;
+            $$ = $2->update($1);
+        }
 		| direct_declarator             { /*Ignore*/ }
         ;
 
 direct_declarator
-        : IDENTIFIER                                                        { }
+        : IDENTIFIER
+        {
+            $$ = $1->update(new SymbolType(currentType));
+            currentSymbol = $$;
+        }
         | LPAREN declarator RPAREN                                          {$$ = $2;}
-		| direct_declarator LSQPAREN assignment_expression RSQPAREN     	{ }
-		| direct_declarator LSQPAREN RSQPAREN         						{ }
-        | direct_declarator LPAREN CT parameter_type_list RPAREN            { }
-		| direct_declarator LPAREN CT RPAREN                          	    { }
+		| direct_declarator LSQPAREN assignment_expression RSQPAREN
+        {             
+            SymbolType *temp = $1->type, *prev = NULL;
+            while(temp->type == TYPE_ARRAY) { 
+                prev = temp;
+                temp = temp->arr_type;
+            }
+
+            if(prev != NULL) { 
+                prev->arrType =  new SymType(TYPE_ARRAY, temp, atoi($3->symbol->init_val.c_str()));	
+                $$ = $1->update($1->type);
+            }
+            else { 
+                SymType* new_type = new SymType(TYPE_ARRAY, $1->type, atoi($3->symbol->init_val.c_str()));
+                $$ = $1->update(new_type);
+            }
+        }
+		| direct_declarator LSQPAREN RSQPAREN
+        {
+            SymbolType *temp = $1->type, *prev = NULL;
+            while(temp->type == TYPE_ARRAY) { 
+                prev = temp;
+                temp = temp->arr_type;
+            }
+
+            if(prev != NULL) { 
+                prev->arrType =  new SymType(TYPE_ARRAY, temp, 0);	
+                $$ = $1->update($1->type);
+            }
+            else { 
+                SymType* new_type = new SymType(TYPE_ARRAY, $1->type, 0);
+                $$ = $1->update(new_type);
+            }
+        }
+        | direct_declarator LPAREN CT parameter_type_list RPAREN
+        { 
+            currentST->name = $1->name;
+
+            if($1->type->type != TYPE_VOID) {
+                Symbol* s = currentST->lookup("return");
+                s->update($1->type);
+            }
+
+            $1->nestedTable = currentST;
+            currentST->parent = globalST;
+
+            changeTable(globalST);
+            currentSymbol = $$;
+        }
+		| direct_declarator LPAREN CT RPAREN
+        { 
+            currentST->name = $1->name;
+
+            if($1->type->type != TYPE_VOID) {
+                Symbol* s = currentST->lookup("return");
+                s->update($1->type);
+            }
+
+            $1->nestedTable = currentST;
+            currentST->parent = globalST;
+
+            changeTable(globalST);
+            currentSymbol = $$;
+        }
         | direct_declarator LSQPAREN type_qualifier_list assignment_expression RSQPAREN 	            { /*Ignore*/ }
 		| direct_declarator LSQPAREN type_qualifier_list RSQPAREN        	                            { /*Ignore*/ }
         | direct_declarator LSQPAREN STATIC type_qualifier_list_opt assignment_expression RSQPAREN      { /*Ignore*/ }
@@ -595,8 +670,8 @@ direct_declarator
         ;
 
 pointer
-        : ASTERISK type_qualifier_list_opt              { }
-        | ASTERISK type_qualifier_list_opt pointer      { }
+        : ASTERISK type_qualifier_list_opt              { $$ = new SymbolType(TYPE_PTR); }
+        | ASTERISK type_qualifier_list_opt pointer      { $$ = new SymbolType(TYPE_PTR, $3); }
         ;
 
 type_qualifier_list
@@ -634,7 +709,7 @@ type_name
         ;
 
 initializer
-        : assignment_expression                 { /*Simple Assignment*/}
+        : assignment_expression                 { $$ = $1->symbol; /*Simple Assignment*/}
         | LBRACE initializer_list RBRACE        { /*Ignore*/ }
         | LBRACE initializer_list COMMA RBRACE  { /*Ignore*/ }
         ;

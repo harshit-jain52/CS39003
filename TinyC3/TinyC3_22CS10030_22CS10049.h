@@ -43,7 +43,7 @@ public:
     int width; // size of the type
     SymbolType* arrType;
 
-    SymbolType(TYPE, int = 1, SymbolType* = NULL);
+    SymbolType(TYPE, SymbolType* = NULL, int = 1);
     int getSize();
     string getType();
 };

@@ -2,7 +2,7 @@
 
 /* SymbolType */
 
-SymbolType::SymbolType(TYPE type_, int width_, SymbolType* arrType_): type(type_), width(width_), arrType(arrType_) {}
+SymbolType::SymbolType(TYPE type_, SymbolType* arrType_, int width_): type(type_), width(width_), arrType(arrType_) {}
 
 int SymbolType::getSize(){
     if(type == TYPE_ARRAY) return width*(arrType->getSize());
