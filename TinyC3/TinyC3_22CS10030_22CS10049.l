@@ -1,4 +1,5 @@
 %{
+    #include "TinyC3_22CS10030_22CS10049_translator.h"
     #include "y.tab.h"
 %}
 
@@ -183,21 +184,21 @@ NEWLINE                 \n
 {INC}                   { return INC; }
 {DEC}                   { return DEC; }
 {AMPERSAND}             { return AMPERSAND; }
-{ASTERISK}              { return ASTERISK; }
-{PLUS}                  { return PLUS; }
-{MINUS}                 { return MINUS; }
+{ASTERISK}              { yylval.op = strdup(yytext); return ASTERISK; }
+{PLUS}                  { yylval.op = strdup(yytext); return PLUS; }
+{MINUS}                 { yylval.op = strdup(yytext); return MINUS; }
 {TILDE}                 { return TILDE; }
 {NOT}                   { return NOT; }
-{DIV}                   { return DIV; }
-{MOD}                   { return MOD; }
-{LEFT_SHIFT}            { return LEFT_SHIFT; }
-{RIGHT_SHIFT}           { return RIGHT_SHIFT; }
-{LT}                    { return LT; }
-{GT}                    { return GT; }
-{LE}                    { return LE; }
-{GE}                    { return GE; }
-{EQ}                    { return EQ; }
-{NE}                    { return NE; }
+{DIV}                   { yylval.op = strdup(yytext); return DIV; }
+{MOD}                   { yylval.op = strdup(yytext); return MOD; }
+{LEFT_SHIFT}            { yylval.op = strdup(yytext); return LEFT_SHIFT; }
+{RIGHT_SHIFT}           { yylval.op = strdup(yytext); return RIGHT_SHIFT; }
+{LT}                    { yylval.op = strdup(yytext); return LT; }
+{GT}                    { yylval.op = strdup(yytext); return GT; }
+{LE}                    { yylval.op = strdup(yytext); return LE; }
+{GE}                    { yylval.op = strdup(yytext); return GE; }
+{EQ}                    { yylval.op = strdup(yytext); return EQ; }
+{NE}                    { yylval.op = strdup(yytext); return NE; }
 {XOR}                   { return XOR; }
 {OR}                    { return OR; }
 {LOGICAL_AND}           { return LOGICAL_AND; }

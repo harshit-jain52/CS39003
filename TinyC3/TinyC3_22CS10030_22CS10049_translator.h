@@ -1,4 +1,9 @@
+#ifndef _TRANSLATOR_H
+#define _TRANSLATOR_H
+
 #include <iostream>
+#include <string>
+#include <cstring>
 #include <list>
 #include <vector>
 #include <map>
@@ -9,6 +14,15 @@ using namespace std;
 #define __INT_SZ 4
 #define __FLOAT_SZ 8
 #define __PTR_SZ 4
+
+class SymbolType;
+class Symbol;
+class SymbolTable;
+class Quadruple;
+class QuadTable;
+class Expression;
+class Array;
+class Statement;
 
 enum TYPE {
     TYPE_VOID,
@@ -21,21 +35,6 @@ enum TYPE {
     TYPE_BLOCK
 };
 
-map<TYPE, int> sizeMap = {
-    {TYPE_VOID, __VOID_SZ},
-    {TYPE_CHAR, __CHAR_SZ},
-    {TYPE_INT, __INT_SZ},
-    {TYPE_FLOAT, __FLOAT_SZ},
-    {TYPE_PTR, __PTR_SZ}
-};
-
-map<TYPE, string> strMap = {
-    {TYPE_VOID, "void"},
-    {TYPE_CHAR, "char"},
-    {TYPE_INT, "int"},
-    {TYPE_FLOAT, "float"},
-    {TYPE_FUNC, "function"}
-};
 
 class SymbolType {
 public:
@@ -59,7 +58,7 @@ public:
 
     Symbol(string, TYPE = TYPE_INT, string="-");
     Symbol* update(SymbolType*);
-    // Symbol* convertType(TYPE);
+    Symbol* convertType(TYPE);
 
 };
 
@@ -86,7 +85,7 @@ public:
 
     Quadruple(string, string, string = "=", string = "");
     Quadruple(string, int, string = "=", string = "");
-    Quadruple(string, float, string = "=", string = "");
+    // Quadruple(string, float, string = "=", string = "");
 
     void print();
 };
@@ -95,6 +94,7 @@ class QuadTable {
 public:
     vector<Quadruple*> quads;
 
+    QuadTable(): quads(vector<Quadruple*>()) {};
     void print();
 };
 
@@ -126,3 +126,27 @@ public:
     list<int>nextlist;
 };
 
+extern map<TYPE, int> sizeMap;
+extern map<TYPE, string> strMap;
+extern SymbolTable* currentST;
+extern SymbolTable* globalST;
+extern int blockCount;
+extern Symbol* currentSymbol;
+extern TYPE currentType;
+extern QuadTable* quadTable;
+
+void emit(string, string, string="", string="");
+void emit(string, string, int, string="");
+
+list<int> makelist(int);
+list<int> merge(list<int>, list<int>);
+void backpatch(list<int>, int);
+
+bool typeCheck(Symbol *&, Symbol *&);
+bool typeCheck(SymbolType *, SymbolType *);
+
+int nextinstr();
+Symbol* gentemp(TYPE, string = "-");
+void changeTable(SymbolTable*);
+
+#endif

@@ -1,14 +1,14 @@
 %{	
-	#include "TinyC3_22CS10030_22CS10049.h"
+	#include "TinyC3_22CS10030_22CS10049_translator.h"
     extern int yylex();
     extern char* yytext;
     extern int yylineno;
-    void yyerror (char *);  
+    void yyerror (const char *);  
 %}
 
 %union {
-    string text;
-    string op;
+    char* text;
+    char* op;
     int num;
     Expression* expr;
     Array* arr;
@@ -19,9 +19,10 @@
 
 %token <text> FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
 %token <sym> IDENTIFIER
+%token <op> ASTERISK PLUS MINUS DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
-%token DOT ARROW INC DEC AMPERSAND ASTERISK PLUS MINUS TILDE NOT DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
+%token DOT ARROW INC DEC AMPERSAND TILDE NOT XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
 %token ENUM STRUCT UNION TYPEDEF HASH
 %type <expr> constant expression expression_opt expression_statement primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
 %type <arr> postfix_expression unary_expression cast_expression
@@ -162,7 +163,7 @@ unary_expression:
                     emit("=&", $$->symbol->name, $2->symbol->name);
                     break;
                 case ASTERISK:
-                    $$ = new Array(gentemp($2->symbol));
+                    $$ = new Array($2->symbol);
                     $$->loca = gentemp($2->loca->type->arrType->type);
                     $$->loca->type->arrType = $2->loca->type->arrType->arrType;
                     $$->type = Array::POINTER;
@@ -250,9 +251,9 @@ multiplicative_expression
         ;
 
 mulop
-        : ASTERISK  { $$ = "*"; }
-        | DIV       { $$ = "/"; }
-        | MOD       { $$ = "%"; }
+        : ASTERISK 
+        | DIV      
+        | MOD      
         ;
 
 additive_expression
@@ -260,7 +261,7 @@ additive_expression
         | additive_expression addop multiplicative_expression
         {   
             if(typeCheck($1->symbol, $3->symbol)) {
-                $$ = new Expression(gentemp($1->symbol->type->type););
+                $$ = new Expression(gentemp($1->symbol->type->type));
                 emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
@@ -270,8 +271,8 @@ additive_expression
         ;
 
 addop
-        : PLUS  { $$ = "+"; }
-        | MINUS { $$ = "-"; }
+        : PLUS 
+        | MINUS
         ;
 
 shift_expression
@@ -279,7 +280,7 @@ shift_expression
         | shift_expression shiftop additive_expression
         { 
             if($3->symbol->type->type == TYPE_INT) {
-                $$ = new Expression(gentemp(TYPE_INT););
+                $$ = new Expression(gentemp(TYPE_INT));
                 emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
@@ -289,8 +290,8 @@ shift_expression
         ;
 
 shiftop
-        : LEFT_SHIFT    { $$ = "<<"; }
-        | RIGHT_SHIFT   { $$ = ">>"; }
+        : LEFT_SHIFT 
+        | RIGHT_SHIFT
         ;
 
 relational_expression
@@ -312,10 +313,10 @@ relational_expression
         ;
 
 relop
-        : LT    { $$ = "<"; }
-        | GT    { $$ = ">"; }
-        | LE    { $$ = "<="; }
-        | GE    { $$ = ">="; }
+        : LT
+        | GT
+        | LE
+        | GE
         ;
 
 equality_expression
@@ -342,8 +343,8 @@ equality_expression
         ;
 
 eqop
-        : EQ    { $$ = "=="; }
-        | NE    { $$ = "!="; }
+        : EQ
+        | NE
         ;
 
 and_expression
@@ -600,15 +601,15 @@ direct_declarator
             SymbolType *temp = $1->type, *prev = NULL;
             while(temp->type == TYPE_ARRAY) { 
                 prev = temp;
-                temp = temp->arr_type;
+                temp = temp->arrType;
             }
 
             if(prev != NULL) { 
-                prev->arrType =  new SymbolType(TYPE_ARRAY, temp, atoi($3->symbol->init_val.c_str()));	
+                prev->arrType =  new SymbolType(TYPE_ARRAY, temp, atoi($3->symbol->initial_value.c_str()));	
                 $$ = $1->update($1->type);
             }
             else { 
-                SymbolType* new_type = new SymbolType(TYPE_ARRAY, $1->type, atoi($3->symbol->init_val.c_str()));
+                SymbolType* new_type = new SymbolType(TYPE_ARRAY, $1->type, atoi($3->symbol->initial_value.c_str()));
                 $$ = $1->update(new_type);
             }
         }
@@ -617,7 +618,7 @@ direct_declarator
             SymbolType *temp = $1->type, *prev = NULL;
             while(temp->type == TYPE_ARRAY) { 
                 prev = temp;
-                temp = temp->arr_type;
+                temp = temp->arrType;
             }
 
             if(prev != NULL) { 
@@ -905,10 +906,10 @@ declaration_list_opt
 
 /* New Non-Terminals */
 
-M   : %empty { $$ = nextinstr(); }
+M   :  { $$ = nextinstr(); }
     ;
 
-N   : %empty
+N   : 
     {
         $$ = new Statement();
         $$->nextlist = makelist(nextinstr());
@@ -916,7 +917,7 @@ N   : %empty
     }
     ;
 
-CT  : %empty
+CT  : 
     {
         if(currentSymbol->nestedTable == NULL) {
             changeTable(new SymbolTable(""));
@@ -928,12 +929,12 @@ CT  : %empty
     }
     ;
 
-CB  : %empty
+CB  : 
     {
         string name = currentST->name + "_" + to_string(blockCount++);
         Symbol *s = currentST->lookup(name);
         s->nestedTable = new SymbolTable(name, currentST);
-        s->type = new SymbolType(BLOCK);
+        s->type = new SymbolType(TYPE_BLOCK);
         currentSymbol = s;
     } 
     ;
