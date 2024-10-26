@@ -126,7 +126,24 @@ void SymbolTable::update(){
     }
 }
 
-void SymbolTable::print(){}
+void SymbolTable::print(){
+    cout << "Symbol Table: " << name << "\tParent: " << (parent==NULL?"NULL":parent->name) << endl;
+    cout << "Name\tType\tInitial Value\tSize\tOffset\tNested Table" << endl;
+
+    vector<SymbolTable*> nestedTables;
+
+    for(auto it = symbols.begin(); it != symbols.end(); it++){
+        cout << it->name << "\t" << it->type->getType() << "\t" << it->initial_value << "\t" << it->size << "\t" << it->offset << "\t" << (it->nestedTable==NULL?"NULL":it->nestedTable->name) << endl;
+
+        if(it->nestedTable) nestedTables.push_back(it->nestedTable);
+    }
+
+    cout << endl;
+
+    for(auto it = nestedTables.begin(); it != nestedTables.end(); it++){
+        (*it)->print();
+    }
+}
 
 /* Quadruple */
 
@@ -134,11 +151,51 @@ Quadruple::Quadruple(string res_, string arg1_, string op_, string arg2_): res(r
 Quadruple::Quadruple(string res_, int arg1_, string op_, string arg2_): res(res_), op(op_), arg2(arg2_) { arg1 = to_string(arg1_); }
 // Quadruple::Quadruple(string res_, float arg1_, string op_, string arg2_): res(res_), op(op_), arg2(arg2_) { arg1 = to_string(arg1_); }
 
-void Quadruple::print(){}
+void Quadruple::print(){
+    if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%" || op == "|" || op == "^" || op == "&" || op == "<<" || op == ">>"){
+        cout << res << " = " << arg1 << " " << op << " " << arg2 << endl;
+    }
+    else if (op == "==" || op == "!=" || op == "<=" || op == ">=" || op == "<" || op == ">"){
+        cout << "if " << arg1 << " " << op << " " << arg2 << " goto " << res << endl;
+    }
+    else if(op == "= &" || op == "= *" || op == "= -" || op == "= !" || op == "= ~"){
+        cout << res << " " << op << arg1 << endl;
+    }
+    else if(op == "*="){
+        cout << "*" << res << " = " << arg1 << endl;
+    }
+    else if(op == "=[]"){
+        cout << res << " = " << arg1 << "[" << arg2 << "]" << endl;
+    }
+    else if(op == "[]="){
+        cout << res << "[" << arg1 << "]" << " = " << arg2 << endl;
+    }
+    else if(op == "goto"){
+        cout << "goto " << res << endl;
+    }
+    else if(op == "return"){
+        cout << "return " << res << endl;
+    }
+    else if(op == "param"){
+        cout << "param " << res << endl;
+    }
+    else if(op == "call"){
+        cout << res << " = call " << arg1 << ", " << arg2 << endl;
+    }
+    else if(op == "label"){
+        cout << res << ":" << endl;
+    }
+}
 
 /* QuadTable */
 
-void QuadTable::print(){}
+void QuadTable::print(){
+    cout << "Three Address Codes:" << endl;
+    for(int i=0; i<quads.size(); i++){
+        cout << i+1 << ". ";
+        quads[i]->print();
+    }
+}
 
 /* Expression */
 
@@ -247,4 +304,6 @@ int main(){
 
     globalST->update();
     globalST->print();
+
+    quadTable->print();
 }

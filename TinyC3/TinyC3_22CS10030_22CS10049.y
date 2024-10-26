@@ -160,29 +160,29 @@ unary_expression:
                 case AMPERSAND:
                     $$ = new Array(gentemp(TYPE_PTR));
                     $$->symbol->type->arrType = $2->symbol->type;
-                    emit("=&", $$->symbol->name, $2->symbol->name);
+                    emit("= &", $$->symbol->name, $2->symbol->name);
                     break;
                 case ASTERISK:
                     $$ = new Array($2->symbol);
                     $$->loca = gentemp($2->loca->type->arrType->type);
                     $$->loca->type->arrType = $2->loca->type->arrType->arrType;
                     $$->type = Array::POINTER;
-                    emit("=*", $$->loca->name, $2->loca->name);
+                    emit("= *", $$->loca->name, $2->loca->name);
                     break;
                 case PLUS:
                     $$ = $2;
                     break;
                 case MINUS:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("=-", $$->symbol->name, "0", $2->symbol->name);
+                    emit("= -", $$->symbol->name, "0", $2->symbol->name);
                     break;
                 case TILDE:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("~", $$->symbol->name, $2->symbol->name);
+                    emit("= ~", $$->symbol->name, $2->symbol->name);
                     break;
                 case NOT:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("!", $$->symbol->name, $2->symbol->name);
+                    emit("= !", $$->symbol->name, $2->symbol->name);
                     break;
             }
         }
