@@ -25,15 +25,13 @@
 %token ENUM STRUCT UNION TYPEDEF HASH
 %type <expr> constant expression expression_opt expression_statement primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
 %type <arr> postfix_expression unary_expression cast_expression
-%type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement  jump_statement block_item block_item_list block_item_list_opt
-%type <num> argument_expression_list argument_expression_list_opt unary_operator
+%type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement jump_statement block_item block_item_list block_item_list_opt N
+%type <num> argument_expression_list argument_expression_list_opt unary_operator M
 %type <sym> initializer direct_declarator init_declarator declarator
 %type <symtype> pointer
 %type <op> relop mulop addop shiftop eqop
-%type type_name initializer_list constant_expression
-%type assignment_operator
-%type declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator
-%type translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start M N
+%type type_name initializer_list constant_expression assignment_operator declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start
+
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
 
@@ -606,11 +604,11 @@ direct_declarator
             }
 
             if(prev != NULL) { 
-                prev->arrType =  new SymType(TYPE_ARRAY, temp, atoi($3->symbol->init_val.c_str()));	
+                prev->arrType =  new SymbolType(TYPE_ARRAY, temp, atoi($3->symbol->init_val.c_str()));	
                 $$ = $1->update($1->type);
             }
             else { 
-                SymType* new_type = new SymType(TYPE_ARRAY, $1->type, atoi($3->symbol->init_val.c_str()));
+                SymbolType* new_type = new SymbolType(TYPE_ARRAY, $1->type, atoi($3->symbol->init_val.c_str()));
                 $$ = $1->update(new_type);
             }
         }
@@ -623,11 +621,11 @@ direct_declarator
             }
 
             if(prev != NULL) { 
-                prev->arrType =  new SymType(TYPE_ARRAY, temp, 0);	
+                prev->arrType =  new SymbolType(TYPE_ARRAY, temp, 0);	
                 $$ = $1->update($1->type);
             }
             else { 
-                SymType* new_type = new SymType(TYPE_ARRAY, $1->type, 0);
+                SymbolType* new_type = new SymbolType(TYPE_ARRAY, $1->type, 0);
                 $$ = $1->update(new_type);
             }
         }
@@ -743,7 +741,11 @@ designator
 statement
         : labeled_statement             { /*Ignore*/ }
         | compound_statement            {$$ = $1; /*Simple Assignment*/}
-        | expression_statement          {/*New Statement*/}
+        | expression_statement
+        {
+            $$ = new Statement();
+            $$->nextlist = $1->nextlist;
+        }
         | selection_statement           {$$ = $1; /*Simple Assignment*/}
         | iteration_statement           {$$ = $1; /*Simple Assignment*/}
         | jump_statement                {$$ = $1; /*Simple Assignment*/}
@@ -756,21 +758,29 @@ labeled_statement
         ;
 
 compound_statement
-        : LBRACE CB CT block_item_list_opt RBRACE       { }
+        : LBRACE CB CT block_item_list_opt RBRACE
+        {
+            $$ = $4;
+            changeTable(currentST->parent);
+        }
         ;
 
 block_item_list
         : block_item                        {$$ = $1; /*Simple Assignment*/}
-        | block_item_list M block_item      { }
+        | block_item_list M block_item
+        {
+            $$ = $3;
+            backpatch($1->nextlist, $2);
+        }
         ;
 
 block_item_list_opt
         : block_item_list               {$$ = $1; /*Simple Assignment*/}
-        | {/* Empty */}                 {/*New statement*/}
+        | {/* Empty */}                 {$$ = new Statement();}
         ;
 
 block_item
-        : declaration       { /*New statement*/}
+        : declaration       {$$ = new Statement();}
         | statement         {$$ = $1; /*Simple Assignment*/}
         ;
 
@@ -780,26 +790,85 @@ expression_statement
 
 expression_opt
         : expression                    {$$ = $1;}
-        | {/* Empty */}                 { /*New Expression*/ }
+        | {/* Empty */}                 {$$ = new Expression();}
 
 selection_statement
-        : IF LPAREN expression N RPAREN M statement N  %prec PSEUDO_ELSE        { }
-        | IF LPAREN expression N RPAREN M statement N ELSE M statement          { }
+        : IF LPAREN expression RPAREN M statement N  %prec PSEUDO_ELSE
+        { 
+            $$ = new Statement();
+
+            $3->convtoBool();
+
+            backpatch($3->truelist, $5);
+
+            $$->nextlist = merge($3->falselist, merge($6->nextlist, $7->nextlist));
+        }
+        | IF LPAREN expression RPAREN M statement N ELSE M statement
+        { 
+            $$ = new Statement();
+
+            $3->convtoBool();
+
+            backpatch($3->truelist, $5);
+            backpatch($3->falselist, $9);
+
+            $$->nextlist = merge($10->nextlist, merge($6->nextlist, $7->nextlist));
+        }
         | SWITCH LPAREN expression RPAREN statement                             { /*Ignore*/ }
         ;
 
 iteration_statement
-        : WHILE M LPAREN expression RPAREN M statement                                                              { }
-        | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON                                                 {}
-        | FOR LPAREN expression_opt SEMICOLON M expression_opt SEMICOLON M expression_opt N RPAREN M statement      { }
-        | FOR LPAREN declaration expression_opt SEMICOLON expression_opt RPAREN statement                           {/*Ignore*/}
+        : WHILE M LPAREN expression RPAREN M statement
+        { 
+            $$ = new Statement();
+
+            $4->convtoBool();
+
+            backpatch($7->nextlist, $2);
+            backpatch($4->truelist, $6);
+
+            $$->nextlist = $4->falselist;
+
+            emit("goto", to_string($2));
+        }
+        | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON
+        { 
+            $$ = new Statement();
+
+            $7->convtoBool();
+
+            backpatch($7->truelist, $2);
+            backpatch($3->nextlist, $4);
+
+            $$->nextlist = $7->falselist;
+        }
+
+        | FOR LPAREN expression_opt SEMICOLON M expression_opt SEMICOLON M expression_opt N RPAREN M statement
+        { 
+            $$ = new Statement();
+
+            $6->convtoBool();
+
+            backpatch($6->truelist, $12);
+            backpatch($10->nextlist, $5);
+            backpatch($13->nextlist, $8);
+
+            emit("goto", to_string($8));
+
+            $$->nextlist = $6->falselist;
+        }
+        | FOR LPAREN declaration expression_opt SEMICOLON expression_opt RPAREN statement        {/*Ignore*/}
         ;
 
 jump_statement
         : GOTO IDENTIFIER SEMICOLON             { /*Ignore*/ }
         | CONTINUE SEMICOLON                    { /*New statement*/}
         | BREAK SEMICOLON                       { /*New statement*/}
-        | RETURN expression_opt SEMICOLON       {/*New statement and emit return*/}
+        | RETURN expression_opt SEMICOLON
+        {   
+            $$ = new Statement();
+            emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
+        }
         ;
 
 /* External Definitions */
@@ -815,7 +884,12 @@ external_declaration
         ;
 
 function_definition
-        : declaration_specifiers declarator declaration_list_opt CT LBRACE block_item_list_opt RBRACE { }
+        : declaration_specifiers declarator declaration_list_opt CT LBRACE block_item_list_opt RBRACE
+        { 
+            blockCount = 0;
+            $2->type->type = TYPE_FUNC;
+            changeTable(globalST);
+        }
         ;
 
 declaration_list
@@ -831,22 +905,43 @@ declaration_list_opt
 
 /* New Non-Terminals */
 
-M   : %empty {/* For backpatching */}
+M   : %empty { $$ = nextinstr(); }
     ;
 
-N   : %empty {/*For control flow and backpatching*/}
+N   : %empty
+    {
+        $$ = new Statement();
+        $$->nextlist = makelist(nextinstr());
+        emit("goto", "");
+    }
     ;
 
-CT  : %empty {/* Changing the sym table at functions */}
+CT  : %empty
+    {
+        if(currentSymbol->nestedTable == NULL) {
+            changeTable(new SymbolTable(""));
+        }
+        else {
+            changeTable(currentSymbol->nestedTable);
+            emit("label", currentST->name);
+        }
+    }
     ;
 
-CB  : %empty { /*Create nested symbols for nested blocks*/}
+CB  : %empty
+    {
+        string name = currentST->name + "_" + to_string(blockCount++);
+        Symbol *s = currentST->lookup(name);
+        s->nestedTable = new SymbolTable(name, currentST);
+        s->type = new SymbolType(BLOCK);
+        currentSymbol = s;
+    } 
     ;
 
 /* Dummy Start */
 
 tinyC_start:
-        translation_unit        {print_productions($$, 0); clean_parse_tree($$);}
+        translation_unit        { /*Ignore*/ }
         ;
 
 %%
