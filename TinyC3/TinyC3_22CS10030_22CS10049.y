@@ -662,9 +662,11 @@ direct_declarator
         }
         | direct_declarator LSQPAREN type_qualifier_list assignment_expression RSQPAREN 	            { /*Ignore*/ }
 		| direct_declarator LSQPAREN type_qualifier_list RSQPAREN        	                            { /*Ignore*/ }
-        | direct_declarator LSQPAREN STATIC type_qualifier_list_opt assignment_expression RSQPAREN      { /*Ignore*/ }
+        | direct_declarator LSQPAREN STATIC type_qualifier_list assignment_expression RSQPAREN          { /*Ignore*/ }
+        | direct_declarator LSQPAREN STATIC assignment_expression RSQPAREN                              { /*Ignore*/ }
         | direct_declarator LSQPAREN type_qualifier_list STATIC assignment_expression RSQPAREN          { /*Ignore*/ }
-        | direct_declarator LSQPAREN type_qualifier_list_opt ASTERISK RSQPAREN                          { /*Ignore*/ }
+        | direct_declarator LSQPAREN type_qualifier_list ASTERISK RSQPAREN                              { /*Ignore*/ }
+        | direct_declarator LSQPAREN ASTERISK RSQPAREN                                                  { /*Ignore*/ }
         | direct_declarator LPAREN identifier_list RPAREN          	                                    { /*Ignore*/ }
         ;
 

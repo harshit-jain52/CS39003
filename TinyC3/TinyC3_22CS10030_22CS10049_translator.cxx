@@ -300,6 +300,8 @@ int main(){
     globalST = new SymbolTable("Global");
     currentST = globalST;
 
+    quadTable = new QuadTable();
+
     yyparse();
 
     globalST->update();

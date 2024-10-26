@@ -96,7 +96,7 @@ class QuadTable {
 public:
     vector<Quadruple*> quads;
 
-    QuadTable(): quads(vector<Quadruple*>()) {};
+    QuadTable(): quads(0) {};
     void print();
 };
 
