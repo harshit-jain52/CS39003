@@ -20,7 +20,9 @@ y.tab.o: y.tab.c
 	g++ -c y.tab.c
 
 test: a.out
-	./a.out < $(BASE)_test.c > $(BASE)_quads.out
+	for i in 1 2 3 4 5; do \
+		./a.out < $(BASE)_test$$i.c > $(BASE)_quads$$i.out; \
+	done
 
 clean:
 	-rm -f a.out *.yy.* *.o *.tab.* *.h.gch

@@ -185,6 +185,9 @@ void Quadruple::print(){
     else if(op == "label"){
         cout << res << ":" << endl;
     }
+    else if(op == "="){
+        cout << res << " = " << arg1 << endl;
+    }
 }
 
 /* QuadTable */

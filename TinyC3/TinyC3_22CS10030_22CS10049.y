@@ -174,7 +174,7 @@ unary_expression:
                     break;
                 case MINUS:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("= -", $$->symbol->name, "0", $2->symbol->name);
+                    emit("= -", $$->symbol->name, $2->symbol->name);
                     break;
                 case TILDE:
                     $$ = new Array(gentemp($2->symbol->type->type));
