@@ -21,7 +21,7 @@ y.tab.o: y.tab.c
 
 test: a.out
 	for i in 1 2 3 4 5; do \
-		./a.out < $(BASE)_test$$i.c > $(BASE)_quads$$i.out; \
+		./a.out < test_in/$(BASE)_test$$i.c > test_out/$(BASE)_quads$$i.out; \
 	done
 
 clean:
