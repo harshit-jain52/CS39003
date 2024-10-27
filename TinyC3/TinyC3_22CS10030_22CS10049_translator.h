@@ -8,6 +8,7 @@ extern int yyparse();
 #include <cstring>
 #include <list>
 #include <vector>
+#include <stack>
 #include <map>
 #include <iomanip>
 using namespace std;
@@ -26,6 +27,7 @@ class QuadTable;
 class Expression;
 class Array;
 class Statement;
+class Environment;
 
 enum TYPE {
     TYPE_VOID,
@@ -88,7 +90,6 @@ public:
 
     Quadruple(string, string, string = "=", string = "");
     Quadruple(string, int, string = "=", string = "");
-    // Quadruple(string, float, string = "=", string = "");
 
     void print();
 };
@@ -129,14 +130,20 @@ public:
     list<int>nextlist;
 };
 
+class Environment{
+public:
+    stack<SymbolTable*> STstack;
+    Symbol* currSymbol;
+    TYPE currType;
+    QuadTable* quadTable;
+    int blockCount;
+
+    Environment();
+};
+
 extern map<TYPE, int> sizeMap;
 extern map<TYPE, string> strMap;
-extern SymbolTable* currentST;
-extern SymbolTable* globalST;
-extern int blockCount;
-extern Symbol* currentSymbol;
-extern TYPE currentType;
-extern QuadTable* quadTable;
+extern Environment* parseEnv;
 
 void emit(string, string, string="", string="");
 void emit(string, string, int, string="");
@@ -150,6 +157,5 @@ bool typeCheck(SymbolType *, SymbolType *);
 
 int nextinstr();
 Symbol* gentemp(TYPE, string = "-");
-void changeTable(SymbolTable*);
 
 #endif
