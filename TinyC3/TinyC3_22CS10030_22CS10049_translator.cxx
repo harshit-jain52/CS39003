@@ -2,11 +2,12 @@
 
 // SymbolTable* currentST;
 // SymbolTable* globalST;
-int blockCount;
-Symbol* currentSymbol;
-TYPE currentType;
-QuadTable* quadTable;
-stack<SymbolTable*> Env;
+// int blockCount;
+// Symbol* currentSymbol;
+// TYPE currentType;
+// QuadTable* parseEnv->quadTable;
+// stack<SymbolTable*> parseEnv->STstack;
+Environment* parseEnv;
 
 map<TYPE, int> sizeMap = {
     {TYPE_VOID, __VOID_SZ},
@@ -263,14 +264,22 @@ void Expression::convtoBool(){
 
 Array::Array(Symbol* symbol_): symbol(symbol_) {}
 
+/* Environment */
+
+Environment::Environment(){
+    STstack.push(new SymbolTable("Global"));
+    quadTable = new QuadTable();
+    blockCount = 0;
+}
+
 /* Global Functions */
 
 void emit(string op, string res, string arg1, string arg2){
-    quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
+    parseEnv->quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
 }
 
 void emit(string op, string res, int arg1, string arg2){
-    quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
+    parseEnv->quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
 }
 
 list<int> makelist(int i){
@@ -285,7 +294,7 @@ list<int> merge(list<int> a, list<int> b){
 
 void backpatch(list<int> a, int addr){
     for(auto it = a.begin(); it != a.end(); it++){
-        quadTable->quads[*it - 1]->res = to_string(addr);
+        parseEnv->quadTable->quads[*it - 1]->res = to_string(addr);
     }
 }
 
@@ -314,16 +323,16 @@ bool typeCheck(SymbolType* a, SymbolType* b){
 }
 
 int nextinstr(){
-    return quadTable->quads.size() + 1;
+    return parseEnv->quadTable->quads.size() + 1;
 }
 
 Symbol* gentemp(TYPE type, string val){
     // Symbol *temp = new Symbol("t" + to_string(currentST->count++), type, val);
     // currentST->symbols.push_back(*temp);
     // return &currentST->symbols.back();
-    Symbol *temp = new Symbol("t" + to_string(Env.top()->count++), type, val);
-    Env.top()->symbols.push_back(*temp);
-    return &Env.top()->symbols.back();
+    Symbol *temp = new Symbol("t" + to_string(parseEnv->STstack.top()->count++), type, val);
+    parseEnv->STstack.top()->symbols.push_back(*temp);
+    return &parseEnv->STstack.top()->symbols.back();
 }
 
 // void changeTable(SymbolTable* T){
@@ -331,18 +340,19 @@ Symbol* gentemp(TYPE type, string val){
 // }
 
 int main(){
-    blockCount = 0;
+    // blockCount = 0;
     // globalST = new SymbolTable("Global");
     // currentST = globalST;
-    Env.push(new SymbolTable("Global"));
-    quadTable = new QuadTable();
+    // parseEnv->STstack.push(new SymbolTable("Global"));
+    // parseEnv->quadTable = new QuadTable();
+    parseEnv = new Environment();
 
     yyparse();
 
     // globalST->update();
     // globalST->print();
-    Env.top()->update();
-    Env.top()->print();
+    parseEnv->STstack.top()->update();
+    parseEnv->STstack.top()->print();
 
-    quadTable->print();
+    parseEnv->quadTable->print();
 }

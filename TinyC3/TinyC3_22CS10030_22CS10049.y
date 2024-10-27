@@ -201,7 +201,7 @@ unary_operator
 
 cast_expression
         : unary_expression                        {$$ = $1;}
-        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(currentType));}
+        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(parseEnv->currType));}
         ;
 
 multiplicative_expression
@@ -542,10 +542,10 @@ storage_class_specifier
         ;
 
 type_specifier
-        : VOID          { currentType = TYPE_VOID; }
-        | CHAR          { currentType = TYPE_CHAR; }
-        | INT           { currentType = TYPE_INT; }
-        | FLOAT         { currentType = TYPE_FLOAT; }
+        : VOID          { parseEnv->currType = TYPE_VOID; }
+        | CHAR          { parseEnv->currType = TYPE_CHAR; }
+        | INT           { parseEnv->currType = TYPE_INT; }
+        | FLOAT         { parseEnv->currType = TYPE_FLOAT; }
         | LONG          {  /*Ignore*/ }
         | SHORT         {  /*Ignore*/ }
         | DOUBLE        {  /*Ignore*/ }
@@ -592,8 +592,8 @@ declarator
 direct_declarator
         : IDENTIFIER
         {
-            $$ = $1->update(new SymbolType(currentType));
-            currentSymbol = $$;
+            $$ = $1->update(new SymbolType(parseEnv->currType));
+            parseEnv->currSymbol = $$;
         }
         | LPAREN declarator RPAREN                                          {$$ = $2;}
 		| direct_declarator LSQPAREN assignment_expression RSQPAREN
@@ -632,35 +632,35 @@ direct_declarator
         }
         | direct_declarator LPAREN CT parameter_type_list RPAREN
         { 
-            Env.top()->name = $1->name;
+            parseEnv->STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = Env.top()->lookup("return");
+                Symbol* s = parseEnv->STstack.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = Env.top();
-            // Env.top()->parent = globalST;
+            $1->nestedTable = parseEnv->STstack.top();
+            // parseEnv->STstack.top()->parent = globalST;
 
             // changeTable(globalST);
-            Env.pop();
-            currentSymbol = $$;
+            parseEnv->STstack.pop();
+            parseEnv->currSymbol = $$;
         }
 		| direct_declarator LPAREN CT RPAREN
         { 
-            Env.top()->name = $1->name;
+            parseEnv->STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = Env.top()->lookup("return");
+                Symbol* s = parseEnv->STstack.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = Env.top();
-            // Env.top()->parent = globalST;
+            $1->nestedTable = parseEnv->STstack.top();
+            // parseEnv->STstack.top()->parent = globalST;
 
             // changeTable(globalST);
-            Env.pop();
-            currentSymbol = $$;
+            parseEnv->STstack.pop();
+            parseEnv->currSymbol = $$;
         }
         | direct_declarator LSQPAREN type_qualifier_list assignment_expression RSQPAREN 	            { /*Ignore*/ }
 		| direct_declarator LSQPAREN type_qualifier_list RSQPAREN        	                            { /*Ignore*/ }
@@ -766,8 +766,8 @@ compound_statement
         : LBRACE CB CT block_item_list_opt RBRACE
         {
             $$ = $4;
-            // changeTable(Env.top()->parent);
-            Env.pop();
+            // changeTable(parseEnv->STstack.top()->parent);
+            parseEnv->STstack.pop();
         }
         ;
 
@@ -892,10 +892,10 @@ external_declaration
 function_definition
         : declaration_specifiers declarator declaration_list_opt CT LBRACE block_item_list_opt RBRACE
         { 
-            blockCount = 0;
+            parseEnv->blockCount = 0;
             $2->type->type = TYPE_FUNC;
             // changeTable(globalST);
-            Env.pop();
+            parseEnv->STstack.pop();
         }
         ;
 
@@ -925,29 +925,29 @@ N   :
 
 CT  : 
     {
-        if(currentSymbol->nestedTable == NULL) {
+        if(parseEnv->currSymbol->nestedTable == NULL) {
             // changeTable(new SymbolTable(""));
             SymbolTable *st = new SymbolTable("");
-            st->parent = Env.top();
-            Env.push(st);
+            st->parent = parseEnv->STstack.top();
+            parseEnv->STstack.push(st);
         }
         else {
-            // changeTable(currentSymbol->nestedTable);
-            // emit("label", Env.top()->name);
-            currentSymbol->nestedTable->parent = Env.top();
-            Env.push(currentSymbol->nestedTable);
-            emit("label",Env.top()->name);
+            // changeTable(parseEnv->currSymbol->nestedTable);
+            // emit("label", parseEnv->STstack.top()->name);
+            parseEnv->currSymbol->nestedTable->parent = parseEnv->STstack.top();
+            parseEnv->STstack.push(parseEnv->currSymbol->nestedTable);
+            emit("label",parseEnv->STstack.top()->name);
         }
     }
     ;
 
 CB  : 
     {
-        string name = Env.top()->name + "_" + to_string(blockCount++);
-        Symbol *s = Env.top()->lookup(name);
-        s->nestedTable = new SymbolTable(name, Env.top());
+        string name = parseEnv->STstack.top()->name + "_" + to_string(parseEnv->blockCount++);
+        Symbol *s = parseEnv->STstack.top()->lookup(name);
+        s->nestedTable = new SymbolTable(name, parseEnv->STstack.top());
         s->type = new SymbolType(TYPE_BLOCK);
-        currentSymbol = s;
+        parseEnv->currSymbol = s;
     } 
     ;
 
