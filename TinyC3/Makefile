@@ -20,9 +20,10 @@ y.tab.o: y.tab.c
 	g++ -c y.tab.c
 
 test: a.out
+	mkdir -p test_out
 	for i in 1 2 3 4 5; do \
 		./a.out < test_in/$(BASE)_test$$i.c > test_out/$(BASE)_quads$$i.out; \
 	done
 
 clean:
-	-rm -f a.out *.yy.* *.o *.tab.* *.h.gch
+	-rm -rf a.out *.yy.* *.o *.tab.* *.h.gch test_out/

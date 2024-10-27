@@ -4,8 +4,9 @@ int main() {
     int x,y,z; 
 
     while (x > 0) {
-        for(x = 10; x > 0; x--)
+        for(x = 10; x > 0; x--){
             y = 10;
+        }
     }
 
     do {

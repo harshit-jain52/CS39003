@@ -3,7 +3,9 @@
 int main() {
     int x[10][20][30];
     int y[10][5];
-    int z[5];
+    char z[5];
+    int* a[2];
+    float **b[3][4];
 
     x[1][2][3] = 10;
 

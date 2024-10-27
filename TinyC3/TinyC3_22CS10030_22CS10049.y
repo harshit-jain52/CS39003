@@ -583,8 +583,21 @@ declarator
             while(temp->arrType != NULL) 
                 temp = temp->arrType;
 
-            temp->arrType = $2->type;
-            $$ = $2->update($1);
+            SymbolType* baseTp = $2->type, *prev = NULL;
+            while(baseTp->type == TYPE_ARRAY) {
+                prev = baseTp;
+                baseTp = baseTp->arrType;
+            }
+
+            temp->arrType = baseTp;
+
+            if(prev!=NULL){
+                prev->arrType = $1;
+                $$ = $2;
+            }
+            else{
+                $$ = $2->update($1);
+            }
         }
 		| direct_declarator             { /*Ignore*/ }
         ;
