@@ -8,6 +8,7 @@ extern int yyparse();
 #include <cstring>
 #include <list>
 #include <vector>
+#include <stack>
 #include <map>
 #include <iomanip>
 using namespace std;
@@ -131,12 +132,13 @@ public:
 
 extern map<TYPE, int> sizeMap;
 extern map<TYPE, string> strMap;
-extern SymbolTable* currentST;
-extern SymbolTable* globalST;
+// extern SymbolTable* currentST;
+// extern SymbolTable* globalST;
 extern int blockCount;
 extern Symbol* currentSymbol;
 extern TYPE currentType;
 extern QuadTable* quadTable;
+extern stack<SymbolTable*> Env;
 
 void emit(string, string, string="", string="");
 void emit(string, string, int, string="");
@@ -150,6 +152,6 @@ bool typeCheck(SymbolType *, SymbolType *);
 
 int nextinstr();
 Symbol* gentemp(TYPE, string = "-");
-void changeTable(SymbolTable*);
+// void changeTable(SymbolTable*);
 
 #endif

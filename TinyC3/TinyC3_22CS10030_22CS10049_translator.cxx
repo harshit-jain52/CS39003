@@ -1,11 +1,12 @@
 #include "TinyC3_22CS10030_22CS10049_translator.h"
 
-SymbolTable* currentST;
-SymbolTable* globalST;
+// SymbolTable* currentST;
+// SymbolTable* globalST;
 int blockCount;
 Symbol* currentSymbol;
 TYPE currentType;
 QuadTable* quadTable;
+stack<SymbolTable*> Env;
 
 map<TYPE, int> sizeMap = {
     {TYPE_VOID, __VOID_SZ},
@@ -20,7 +21,8 @@ map<TYPE, string> strMap = {
     {TYPE_CHAR, "char"},
     {TYPE_INT, "int"},
     {TYPE_FLOAT, "float"},
-    {TYPE_FUNC, "function"}
+    {TYPE_FUNC, "function"},
+    {TYPE_BLOCK, "block"}
 };
 
 /* SymbolType */
@@ -316,26 +318,31 @@ int nextinstr(){
 }
 
 Symbol* gentemp(TYPE type, string val){
-    Symbol *temp = new Symbol("t" + to_string(currentST->count++), type, val);
-    currentST->symbols.push_back(*temp);
-    return &currentST->symbols.back();
+    // Symbol *temp = new Symbol("t" + to_string(currentST->count++), type, val);
+    // currentST->symbols.push_back(*temp);
+    // return &currentST->symbols.back();
+    Symbol *temp = new Symbol("t" + to_string(Env.top()->count++), type, val);
+    Env.top()->symbols.push_back(*temp);
+    return &Env.top()->symbols.back();
 }
 
-void changeTable(SymbolTable* T){
-    currentST = T;
-}
+// void changeTable(SymbolTable* T){
+//     currentST = T;
+// }
 
 int main(){
     blockCount = 0;
-    globalST = new SymbolTable("Global");
-    currentST = globalST;
-
+    // globalST = new SymbolTable("Global");
+    // currentST = globalST;
+    Env.push(new SymbolTable("Global"));
     quadTable = new QuadTable();
 
     yyparse();
 
-    globalST->update();
-    globalST->print();
+    // globalST->update();
+    // globalST->print();
+    Env.top()->update();
+    Env.top()->print();
 
     quadTable->print();
 }

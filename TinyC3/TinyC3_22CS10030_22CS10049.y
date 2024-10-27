@@ -632,32 +632,34 @@ direct_declarator
         }
         | direct_declarator LPAREN CT parameter_type_list RPAREN
         { 
-            currentST->name = $1->name;
+            Env.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = currentST->lookup("return");
+                Symbol* s = Env.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = currentST;
-            currentST->parent = globalST;
+            $1->nestedTable = Env.top();
+            // Env.top()->parent = globalST;
 
-            changeTable(globalST);
+            // changeTable(globalST);
+            Env.pop();
             currentSymbol = $$;
         }
 		| direct_declarator LPAREN CT RPAREN
         { 
-            currentST->name = $1->name;
+            Env.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = currentST->lookup("return");
+                Symbol* s = Env.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = currentST;
-            currentST->parent = globalST;
+            $1->nestedTable = Env.top();
+            // Env.top()->parent = globalST;
 
-            changeTable(globalST);
+            // changeTable(globalST);
+            Env.pop();
             currentSymbol = $$;
         }
         | direct_declarator LSQPAREN type_qualifier_list assignment_expression RSQPAREN 	            { /*Ignore*/ }
@@ -764,7 +766,8 @@ compound_statement
         : LBRACE CB CT block_item_list_opt RBRACE
         {
             $$ = $4;
-            changeTable(currentST->parent);
+            // changeTable(Env.top()->parent);
+            Env.pop();
         }
         ;
 
@@ -891,7 +894,8 @@ function_definition
         { 
             blockCount = 0;
             $2->type->type = TYPE_FUNC;
-            changeTable(globalST);
+            // changeTable(globalST);
+            Env.pop();
         }
         ;
 
@@ -922,20 +926,26 @@ N   :
 CT  : 
     {
         if(currentSymbol->nestedTable == NULL) {
-            changeTable(new SymbolTable(""));
+            // changeTable(new SymbolTable(""));
+            SymbolTable *st = new SymbolTable("");
+            st->parent = Env.top();
+            Env.push(st);
         }
         else {
-            changeTable(currentSymbol->nestedTable);
-            emit("label", currentST->name);
+            // changeTable(currentSymbol->nestedTable);
+            // emit("label", Env.top()->name);
+            currentSymbol->nestedTable->parent = Env.top();
+            Env.push(currentSymbol->nestedTable);
+            emit("label",Env.top()->name);
         }
     }
     ;
 
 CB  : 
     {
-        string name = currentST->name + "_" + to_string(blockCount++);
-        Symbol *s = currentST->lookup(name);
-        s->nestedTable = new SymbolTable(name, currentST);
+        string name = Env.top()->name + "_" + to_string(blockCount++);
+        Symbol *s = Env.top()->lookup(name);
+        s->nestedTable = new SymbolTable(name, Env.top());
         s->type = new SymbolType(TYPE_BLOCK);
         currentSymbol = s;
     } 
