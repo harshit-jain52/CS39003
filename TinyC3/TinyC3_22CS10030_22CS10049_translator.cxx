@@ -124,7 +124,7 @@ void SymbolTable::update(){
 
 void SymbolTable::print(){
     const char separator    = ' ';
-    const int nameWidth     = 15;
+    const int nameWidth     = 40;
     const int numWidth      = 15;
     
     cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
@@ -215,7 +215,8 @@ void Quadruple::print(){
 void QuadTable::print(){
     cout << "Three Address Codes:" << endl;
     for(int i=0; i<quads.size(); i++){
-        cout << i+1 << ". ";
+        string serial = to_string(i+1) + ".";
+        cout << setw(5) << left << setfill(' ') << serial;
         quads[i]->print();
     }
 }
