@@ -90,7 +90,6 @@ public:
 
     Quadruple(string, string, string = "=", string = "");
     Quadruple(string, int, string = "=", string = "");
-    // Quadruple(string, float, string = "=", string = "");
 
     void print();
 };
@@ -144,13 +143,6 @@ public:
 
 extern map<TYPE, int> sizeMap;
 extern map<TYPE, string> strMap;
-// extern SymbolTable* currentST;
-// extern SymbolTable* globalST;
-// extern int blockCount;
-// extern Symbol* currentSymbol;
-// extern TYPE currentType;
-// extern QuadTable* quadTable;
-// extern stack<SymbolTable*> Env;
 extern Environment* parseEnv;
 
 void emit(string, string, string="", string="");
@@ -165,6 +157,5 @@ bool typeCheck(SymbolType *, SymbolType *);
 
 int nextinstr();
 Symbol* gentemp(TYPE, string = "-");
-// void changeTable(SymbolTable*);
 
 #endif

@@ -1,12 +1,5 @@
 #include "TinyC3_22CS10030_22CS10049_translator.h"
 
-// SymbolTable* currentST;
-// SymbolTable* globalST;
-// int blockCount;
-// Symbol* currentSymbol;
-// TYPE currentType;
-// QuadTable* parseEnv->quadTable;
-// stack<SymbolTable*> parseEnv->STstack;
 Environment* parseEnv;
 
 map<TYPE, int> sizeMap = {
@@ -148,7 +141,6 @@ void SymbolTable::print(){
     cout << left << setw(nameWidth) << setfill(separator) << "Nested Table";
     cout << endl;
 
-    // cout << "Name\tType\tInitial Value\tSize\tOffset\tNested Table" << endl;
 
     vector<SymbolTable*> nestedTables;
 
@@ -161,7 +153,6 @@ void SymbolTable::print(){
         cout << left << setw(nameWidth) << setfill(separator) << (it->nestedTable==NULL?"NULL":it->nestedTable->name);
         cout << endl;
 
-        // cout << it->name << "\t" << it->type->getType() << "\t" << it->initial_value << "\t" << it->size << "\t" << it->offset << "\t" << (it->nestedTable==NULL?"NULL":it->nestedTable->name) << endl;
 
         if(it->nestedTable) nestedTables.push_back(it->nestedTable);
     }
@@ -179,7 +170,6 @@ void SymbolTable::print(){
 
 Quadruple::Quadruple(string res_, string arg1_, string op_, string arg2_): res(res_), arg1(arg1_), op(op_), arg2(arg2_) {}
 Quadruple::Quadruple(string res_, int arg1_, string op_, string arg2_): res(res_), op(op_), arg2(arg2_) { arg1 = to_string(arg1_); }
-// Quadruple::Quadruple(string res_, float arg1_, string op_, string arg2_): res(res_), op(op_), arg2(arg2_) { arg1 = to_string(arg1_); }
 
 void Quadruple::print(){
     if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%" || op == "|" || op == "^" || op == "&" || op == "<<" || op == ">>"){
@@ -327,30 +317,17 @@ int nextinstr(){
 }
 
 Symbol* gentemp(TYPE type, string val){
-    // Symbol *temp = new Symbol("t" + to_string(currentST->count++), type, val);
-    // currentST->symbols.push_back(*temp);
-    // return &currentST->symbols.back();
     Symbol *temp = new Symbol("t" + to_string(parseEnv->STstack.top()->count++), type, val);
     parseEnv->STstack.top()->symbols.push_back(*temp);
     return &parseEnv->STstack.top()->symbols.back();
 }
 
-// void changeTable(SymbolTable* T){
-//     currentST = T;
-// }
 
 int main(){
-    // blockCount = 0;
-    // globalST = new SymbolTable("Global");
-    // currentST = globalST;
-    // parseEnv->STstack.push(new SymbolTable("Global"));
-    // parseEnv->quadTable = new QuadTable();
     parseEnv = new Environment();
 
     yyparse();
 
-    // globalST->update();
-    // globalST->print();
     parseEnv->STstack.top()->update();
     parseEnv->STstack.top()->print();
 

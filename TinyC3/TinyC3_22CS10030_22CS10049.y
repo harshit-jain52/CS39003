@@ -640,9 +640,7 @@ direct_declarator
             }
 
             $1->nestedTable = parseEnv->STstack.top();
-            // parseEnv->STstack.top()->parent = globalST;
 
-            // changeTable(globalST);
             parseEnv->STstack.pop();
             parseEnv->currSymbol = $$;
         }
@@ -656,9 +654,7 @@ direct_declarator
             }
 
             $1->nestedTable = parseEnv->STstack.top();
-            // parseEnv->STstack.top()->parent = globalST;
 
-            // changeTable(globalST);
             parseEnv->STstack.pop();
             parseEnv->currSymbol = $$;
         }
@@ -766,7 +762,6 @@ compound_statement
         : LBRACE CB CT block_item_list_opt RBRACE
         {
             $$ = $4;
-            // changeTable(parseEnv->STstack.top()->parent);
             parseEnv->STstack.pop();
         }
         ;
@@ -894,7 +889,6 @@ function_definition
         { 
             parseEnv->blockCount = 0;
             $2->type->type = TYPE_FUNC;
-            // changeTable(globalST);
             parseEnv->STstack.pop();
         }
         ;
@@ -926,14 +920,11 @@ N   :
 CT  : 
     {
         if(parseEnv->currSymbol->nestedTable == NULL) {
-            // changeTable(new SymbolTable(""));
             SymbolTable *st = new SymbolTable("");
             st->parent = parseEnv->STstack.top();
             parseEnv->STstack.push(st);
         }
         else {
-            // changeTable(parseEnv->currSymbol->nestedTable);
-            // emit("label", parseEnv->STstack.top()->name);
             parseEnv->currSymbol->nestedTable->parent = parseEnv->STstack.top();
             parseEnv->STstack.push(parseEnv->currSymbol->nestedTable);
             emit("label",parseEnv->STstack.top()->name);
