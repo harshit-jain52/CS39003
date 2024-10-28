@@ -2,36 +2,19 @@
 
 Environment* parseEnv;
 
-map<TYPE, int> sizeMap = {
-    {TYPE_VOID, __VOID_SZ},
-    {TYPE_CHAR, __CHAR_SZ},
-    {TYPE_INT, __INT_SZ},
-    {TYPE_FLOAT, __FLOAT_SZ},
-    {TYPE_PTR, __PTR_SZ}
-};
-
-map<TYPE, string> strMap = {
-    {TYPE_VOID, "void"},
-    {TYPE_CHAR, "char"},
-    {TYPE_INT, "int"},
-    {TYPE_FLOAT, "float"},
-    {TYPE_FUNC, "function"},
-    {TYPE_BLOCK, "block"}
-};
-
 /* SymbolType */
 
 SymbolType::SymbolType(TYPE type_, SymbolType* arrType_, int width_): type(type_), width(width_), arrType(arrType_) {}
 
 int SymbolType::getSize(){
     if(type == TYPE_ARRAY) return width*(arrType->getSize());
-    return sizeMap[type];
+    return parseEnv->sizeMap[type];
 }
 
 string SymbolType::getType(){
     if(type == TYPE_ARRAY) return "array(" + to_string(width) + ", " + arrType->getType() + ")";
     if(type == TYPE_PTR) return "ptr(" + arrType->getType() + ")";
-    return strMap[type];
+    return parseEnv->strMap[type];
 }
 
 /* Symbol */
@@ -212,6 +195,8 @@ void Quadruple::print(){
 
 /* QuadTable */
 
+QuadTable::QuadTable(): quads(0) {}
+
 void QuadTable::print(){
     cout << "Three Address Codes:" << endl;
     for(int i=0; i<quads.size(); i++){
@@ -220,6 +205,10 @@ void QuadTable::print(){
         quads[i]->print();
     }
 }
+
+/* Array */
+
+Array::Array(Symbol* symbol_): symbol(symbol_) {}
 
 /* Expression */
 
@@ -251,9 +240,9 @@ void Expression::convtoBool(){
     }
 }
 
-/* Array */
+/* Statement */
 
-Array::Array(Symbol* symbol_): symbol(symbol_) {}
+Statement::Statement() {}
 
 /* Environment */
 
@@ -261,6 +250,21 @@ Environment::Environment(){
     STstack.push(new SymbolTable("Global"));
     quadTable = new QuadTable();
     blockCount = 0;
+    sizeMap = {
+        {TYPE_VOID, __VOID_SZ},
+        {TYPE_CHAR, __CHAR_SZ},
+        {TYPE_INT, __INT_SZ},
+        {TYPE_FLOAT, __FLOAT_SZ},
+        {TYPE_PTR, __PTR_SZ}
+    };
+    strMap = {
+        {TYPE_VOID, "void"},
+        {TYPE_CHAR, "char"},
+        {TYPE_INT, "int"},
+        {TYPE_FLOAT, "float"},
+        {TYPE_FUNC, "function"},
+        {TYPE_BLOCK, "block"}
+    };
 }
 
 /* Global Functions */

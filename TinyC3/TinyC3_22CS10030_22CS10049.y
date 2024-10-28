@@ -24,9 +24,9 @@
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND TILDE NOT XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
 %token ENUM STRUCT UNION TYPEDEF HASH
-%type <expr> constant expression expression_opt expression_statement primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
+%type <expr> constant expression expression_opt primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
 %type <arr> postfix_expression unary_expression cast_expression
-%type <stmt> statement compound_statement selection_statement iteration_statement labeled_statement jump_statement block_item block_item_list block_item_list_opt N
+%type <stmt> statement expression_statement compound_statement selection_statement iteration_statement labeled_statement jump_statement block_item block_item_list block_item_list_opt N
 %type <num> argument_expression_list argument_expression_list_opt unary_operator M
 %type <sym> initializer direct_declarator init_declarator declarator
 %type <symtype> pointer
@@ -755,11 +755,7 @@ designator
 statement
         : labeled_statement             { /*Ignore*/ }
         | compound_statement            {$$ = $1; /*Simple Assignment*/}
-        | expression_statement
-        {
-            $$ = new Statement();
-            $$->nextlist = $1->nextlist;
-        }
+        | expression_statement          {$$ = $1; /*Simple Assignment*/}
         | selection_statement           {$$ = $1; /*Simple Assignment*/}
         | iteration_statement           {$$ = $1; /*Simple Assignment*/}
         | jump_statement                {$$ = $1; /*Simple Assignment*/}
@@ -799,7 +795,7 @@ block_item
         ;
 
 expression_statement
-        : expression_opt SEMICOLON      {$$ = $1;}
+        : expression_opt SEMICOLON      {$$ = new Statement();}
         ;
 
 expression_opt

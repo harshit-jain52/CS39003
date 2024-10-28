@@ -29,6 +29,10 @@ class Array;
 class Statement;
 class Environment;
 
+/*
+enum: TYPE
+*description: Defines the data types of the symbols
+*/
 enum TYPE {
     TYPE_VOID,
     TYPE_CHAR,
@@ -40,7 +44,18 @@ enum TYPE {
     TYPE_BLOCK
 };
 
-
+/*
+class: SymbolType
+*description: Defines the complete type of a symbol
+*attributes:
+    type: TYPE -- data type of the symbol
+    width: int -- width of the symbol (if the type is an array, otherwise 1)
+    arrType: SymbolType* -- type of the array/pointer elements (if the type is an array/pointer)
+*methods:
+    SymbolType(TYPE, SymbolType*, int) -- constructor
+    getSize() -- returns the computed size of the type
+    getType() -- returns the type in string format
+*/
 class SymbolType {
 public:
     TYPE type; 
@@ -52,6 +67,21 @@ public:
     string getType();
 };
 
+/*
+class: Symbol
+*description: Defines a symbol in the symbol table
+*attributes:
+    name: string -- name of the symbol
+    type: SymbolType* -- type of the symbol
+    initial_value: string -- initial value of the symbol
+    size: int -- size of the symbol
+    offset: int -- offset of the symbol in the symbol table
+    nestedTable: SymbolTable* --
+*methods:
+    Symbol(string, TYPE, string) -- constructor
+    update(SymbolType*) -- updates the type of the symbol to the given type
+    convertType(TYPE) -- converts the type of the symbol to the given type
+*/
 class Symbol {
 public:
     string name;
@@ -67,6 +97,20 @@ public:
 
 };
 
+/*
+class: SymbolTable
+*description: Defines a symbol table
+*attributes:
+    name: string -- name of the symbol table
+    count: int -- number of symbols in the symbol table
+    symbols: list<Symbol> -- list of symbols in the symbol table
+    parent: SymbolTable* -- parent symbol table (NULL if it is the global symbol table)
+*methods:
+    SymbolTable(string, SymbolTable*) -- constructor
+    lookup(string) -- looks up a symbol in the symbol table, adds it if not found
+    print() -- prints the symbol table
+    update() -- updates the symbol table
+*/
 class SymbolTable {
 public:
     string name;
@@ -81,6 +125,19 @@ public:
     void update();
 };
 
+/*
+class: Quadruple
+*description: Defines a quadruple in the intermediate code
+*attributes:
+    op: string -- operation
+    arg1: string -- argument 1
+    arg2: string -- argument 2
+    res: string -- result
+*methods:
+    Quadruple(string, string, string, string) -- constructor
+    Quadruple(string, int, string, string) -- constructor
+    print() -- prints the quadruple
+*/
 class Quadruple {
 public:
     string op;
@@ -94,27 +151,34 @@ public:
     void print();
 };
 
+/*
+class: QuadTable
+*description: Defines the table of quadruples
+*attributes:
+    quads: vector<Quadruple*> -- incremental list of quadruples
+*methods:
+    QuadTable() -- constructor
+    print() -- prints the quad table
+*/
 class QuadTable {
 public:
     vector<Quadruple*> quads;
 
-    QuadTable(): quads(0) {};
+    QuadTable();
     void print();
 };
 
-class Expression {
-public:
-    Symbol *symbol;
-    enum type_ {NONBOOL, BOOL} type;
-    list<int> truelist;
-    list<int> falselist;
-    list<int> nextlist;
-
-    Expression(Symbol* = NULL);
-    void convtoInt();
-    void convtoBool();
-};
-
+/*
+class: Array
+*description: Defines array attributes (used while parsing)
+*attributes:
+    loca: Symbol* -- symbol corresponding to address of array (used for offset calculation)
+    type: type_ -- type of Array (array or pointer or neither)
+    symbol: Symbol* -- symbol corresponding to the array
+    childType: SymbolType* -- type of the array elements
+*methods:
+    Array(Symbol*) -- constructor
+*/
 class Array{
 public:
     Symbol* loca;
@@ -125,11 +189,60 @@ public:
     Array(Symbol* = NULL);
 };
 
+/*
+class: Expression
+*description: Defines expression attributes (used while parsing)
+*attributes:
+    symbol: Symbol* -- symbol corresponding to the expression
+    type: type_ -- type of the expression (bool or non-bool)
+    truelist: list<int> -- list of jump instructions into which we must insert the label to which the control should jump if the expression is true
+    falselist: list<int> -- list of jump instructions into which we must insert the label to which the control should jump if the expression is false
+*methods:
+    Expression(Symbol*) -- constructor
+    convtoInt() -- converts the expression to an integer
+    convtoBool() -- converts the expression to a boolean
+*/
+class Expression {
+public:
+    Symbol *symbol;
+    enum type_ {NONBOOL, BOOL} type;
+    list<int> truelist;
+    list<int> falselist;
+
+    Expression(Symbol* = NULL);
+    void convtoInt();
+    void convtoBool();
+};
+
+/*
+class: Statement
+*description: Defines statement attributes (used while parsing)
+*attributes:
+    nextlist: list<int> -- list of jump instructions into which we must insert the label to which the control should jump after the statement
+*methods:
+    Statement() -- constructor
+*/
 class Statement {
 public:
     list<int>nextlist;
+
+    Statement();
 };
 
+/*
+class: Environment
+*description: Defines the environment of the parser
+*attributes:
+    STstack: stack<SymbolTable*> -- stack of symbol tables (current symbol table at the top)
+    currSymbol: Symbol* -- current symbol
+    currType: TYPE -- current type
+    quadTable: QuadTable* -- table of quadruples
+    blockCount: int -- count of blocks encountered
+    sizeMap: map<TYPE, int> -- map of data types to their sizes
+    strMap: map<TYPE, string> -- map of data types to their string representations
+*methods:
+    Environment() -- constructor
+*/
 class Environment{
 public:
     stack<SymbolTable*> STstack;
@@ -137,14 +250,16 @@ public:
     TYPE currType;
     QuadTable* quadTable;
     int blockCount;
+    map<TYPE, int> sizeMap;
+    map<TYPE, string> strMap;
 
     Environment();
 };
 
-extern map<TYPE, int> sizeMap;
-extern map<TYPE, string> strMap;
+// Global variables
 extern Environment* parseEnv;
 
+// Global functions
 void emit(string, string, string="", string="");
 void emit(string, string, int, string="");
 
