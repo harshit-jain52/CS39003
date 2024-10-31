@@ -78,34 +78,8 @@ Symbol* Symbol::convertType(TYPE retType){
 void Symbol::setinit(Symbol* rhs){
     if(rhs->initial_value != "-"){
         initial_value = rhs->initial_value;  
-        if(type->type == TYPE_INT){
-            if(rhs->type->type == TYPE_FLOAT){
-                string temp = ""; 
-                for(auto c: rhs->initial_value) {
-                    if(c == '.') break;
-                    temp.push_back(c);
-                }
-                initial_value = temp;    
-            }
-            else if(rhs->type->type == TYPE_CHAR){
-                initial_value = to_string((int)rhs->initial_value[1]);
-            }
-        }
-        else if(type->type == TYPE_FLOAT){
-            if(rhs->type->type == TYPE_INT){
-                initial_value += ".0";
-            }
-            else if(rhs->type->type == TYPE_CHAR){
-                initial_value = to_string((int)rhs->initial_value[1]) + ".0";
-            }
-        }
-        else if(type->type == TYPE_CHAR){
-            if(rhs->type->type == TYPE_INT){
-                initial_value = "'";
-                initial_value += (char)stoi(rhs->initial_value);
-                initial_value += "'";
-            }
-        }
+        if(type->type != rhs->type->type) 
+            initial_value = "-"; 
     }
 }
 
@@ -331,15 +305,15 @@ void backpatch(list<int> a, int addr){
 bool typeCheck(Symbol*& a, Symbol*& b){
     if(typeCheck(a->type, b->type)) return true;
 
-    if(a->type->type == TYPE_INT || b->type->type == TYPE_INT){
-        a = a->convertType(TYPE_INT);
-        b = b->convertType(TYPE_INT);
-        return true;
-    }
-
     if(a->type->type == TYPE_FLOAT || b->type->type == TYPE_FLOAT){
         a = a->convertType(TYPE_FLOAT);
         b = b->convertType(TYPE_FLOAT);
+        return true;
+    }
+
+    if(a->type->type == TYPE_INT || b->type->type == TYPE_INT){
+        a = a->convertType(TYPE_INT);
+        b = b->convertType(TYPE_INT);
         return true;
     }
 
