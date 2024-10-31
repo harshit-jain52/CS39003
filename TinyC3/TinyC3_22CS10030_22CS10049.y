@@ -452,7 +452,7 @@ conditional_expression
         ;
 
 assignment_expression
-        : conditional_expression                                        {$$ = $1; /* Simple Assignment */}
+        : conditional_expression                                        {$1->convtoInt(); $$ = $1; /* Simple Assignment */}
         | unary_expression assignment_operator assignment_expression
         {   
             switch($1->type){

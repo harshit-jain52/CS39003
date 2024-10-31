@@ -19,7 +19,9 @@ int main() {
 
     a = (x|y) & z; 
 
-
+    a = x + y < z;
+    a = x + (y < z);
+    
     int* w = &x;
  
     return 0;

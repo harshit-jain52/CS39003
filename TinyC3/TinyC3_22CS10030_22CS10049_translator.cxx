@@ -222,12 +222,12 @@ void Expression::convtoInt(){
         symbol = gentemp(TYPE_INT);
 
         backpatch(truelist, nextinstr());
-        emit("=", symbol->name, "true"); 
+        emit("=", symbol->name, "1"); 
 
-        emit("goto", to_string(nextinstr() + 1));  
+        emit("goto", to_string(nextinstr() + 2));  
 
         backpatch(falselist, nextinstr());
-        emit("=", symbol->name, "false");
+        emit("=", symbol->name, "0");
     }
 }
 
