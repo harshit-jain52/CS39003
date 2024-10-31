@@ -294,4 +294,7 @@ int nextinstr();
 // to generate a new temporary variable
 Symbol* gentemp(TYPE, string = "-");
 
+// helper function to print the symbol table
+void print_STCols(const vector<string>&, int, char, int);
+
 #endif

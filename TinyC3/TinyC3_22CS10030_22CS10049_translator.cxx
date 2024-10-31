@@ -113,43 +113,34 @@ void SymbolTable::update(){
     }
 }
 
+void print_STCols(const vector<string>& names, int nameW = 40, char sep = ' ', int numW = 15) {
+    for(int i=0; i<names.size(); i++){
+        if(i==3 || i==4) 
+            cout << left << setw(numW) << setfill(sep) << names[i];
+        else 
+            cout << left << setw(nameW) << setfill(sep) << names[i];
+    }
+    cout << endl;
+}
+
 void SymbolTable::print(){
-    const char separator    = ' ';
-    const int nameWidth     = 40;
-    const int numWidth      = 15;
-    
-    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
+    cout << setfill('-') << setw(240) << "-" << endl;
 
     cout << "Symbol Table: " << name << "\tParent: " << (parent==NULL?"NULL":parent->name) << endl;
 
-    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
+    cout << setfill('-') << setw(240) << "-" << endl;
 
-    cout << left << setw(nameWidth) << setfill(separator) << "Name";
-    cout << left << setw(nameWidth) << setfill(separator) << "Type";
-    cout << left << setw(nameWidth) << setfill(separator) << "Initial Value";
-    cout << left << setw(numWidth) << setfill(separator) << "Size";
-    cout << left << setw(numWidth) << setfill(separator) << "Offset";
-    cout << left << setw(nameWidth) << setfill(separator) << "Nested Table";
-    cout << endl;
-
+    print_STCols({"Name", "Type", "Initial Value", "Size", "Offset", "Nested Table"});
 
     vector<SymbolTable*> nestedTables;
 
     for(auto it = symbols.begin(); it != symbols.end(); it++){
-        cout << left << setw(nameWidth) << setfill(separator) << it->name;
-        cout << left << setw(nameWidth) << setfill(separator) << it->type->getType();
-        cout << left << setw(nameWidth) << setfill(separator) << it->initial_value;
-        cout << left << setw(numWidth) << setfill(separator) << it->size;
-        cout << left << setw(numWidth) << setfill(separator) << it->offset;
-        cout << left << setw(nameWidth) << setfill(separator) << (it->nestedTable==NULL?"NULL":it->nestedTable->name);
-        cout << endl;
-
-
+        const vector<string> symbols_values = {it->name, it->type->getType(), it->initial_value, to_string(it->size), to_string(it->offset), (it->nestedTable==NULL?"NULL":it->nestedTable->name)};
+        print_STCols(symbols_values);
         if(it->nestedTable) nestedTables.push_back(it->nestedTable);
     }
     
-    cout << setfill('-') << setw(nameWidth*6) << "-" << endl;
-
+    cout << setfill('-') << setw(240) << "-" << endl;
     cout << endl;
 
     for(auto it = nestedTables.begin(); it != nestedTables.end(); it++){
