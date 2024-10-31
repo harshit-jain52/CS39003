@@ -75,6 +75,40 @@ Symbol* Symbol::convertType(TYPE retType){
     return this;
 }
 
+void Symbol::setinit(Symbol* rhs){
+    if(rhs->initial_value != "-"){
+        initial_value = rhs->initial_value;  
+        if(type->type == TYPE_INT){
+            if(rhs->type->type == TYPE_FLOAT){
+                string temp = ""; 
+                for(auto c: rhs->initial_value) {
+                    if(c == '.') break;
+                    temp.push_back(c);
+                }
+                initial_value = temp;    
+            }
+            else if(rhs->type->type == TYPE_CHAR){
+                initial_value = to_string((int)rhs->initial_value[1]);
+            }
+        }
+        else if(type->type == TYPE_FLOAT){
+            if(rhs->type->type == TYPE_INT){
+                initial_value += ".0";
+            }
+            else if(rhs->type->type == TYPE_CHAR){
+                initial_value = to_string((int)rhs->initial_value[1]) + ".0";
+            }
+        }
+        else if(type->type == TYPE_CHAR){
+            if(rhs->type->type == TYPE_INT){
+                initial_value = "'";
+                initial_value += (char)stoi(rhs->initial_value);
+                initial_value += "'";
+            }
+        }
+    }
+}
+
 /* SymbolTable */
 
 SymbolTable::SymbolTable(string name_, SymbolTable* parent_): name(name_), parent(parent_), count(0) {}

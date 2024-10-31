@@ -81,6 +81,7 @@ class: Symbol
     Symbol(string, TYPE, string) -- constructor
     update(SymbolType*) -- updates the type of the symbol to the given type
     convertType(TYPE) -- converts the type of the symbol to the given type
+    setinit(Symbol*) -- sets the initial value of the symbol based on another symbol
 */
 class Symbol {
 public:
@@ -94,7 +95,7 @@ public:
     Symbol(string, TYPE = TYPE_INT, string="-");
     Symbol* update(SymbolType*);
     Symbol* convertType(TYPE);
-
+    void setinit(Symbol*);
 };
 
 /*

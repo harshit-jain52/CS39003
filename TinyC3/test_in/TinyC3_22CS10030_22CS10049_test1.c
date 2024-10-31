@@ -1,4 +1,4 @@
-// covering basic expressions, arithmetic operators
+// covering basic expressions, arithmetic operators, type conversions
 
 int main() {
     int x,y,z; 
@@ -23,6 +23,12 @@ int main() {
     a = x + (y < z);
     
     int* w = &x;
+
+    int p = 3.14;
+    int q = 'a';
+    float r = 5;
+    float s = 'z';
+    char t = 84;
  
     return 0;
 }

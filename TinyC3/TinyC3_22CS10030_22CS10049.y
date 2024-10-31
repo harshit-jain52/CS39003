@@ -551,7 +551,8 @@ init_declarator
         : declarator                            {$$ = $1;}
         | declarator ASSIGN initializer
         {
-            if($3->initial_value != "-") $1->initial_value = $3->initial_value;
+            $1->setinit($3);
+            $3 = $3->convertType($1->type->type);
             parseEnv->quadTable->emit("=", $1->name, $3->name);
         }
         ;
