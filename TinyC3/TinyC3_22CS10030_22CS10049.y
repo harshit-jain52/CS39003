@@ -17,22 +17,36 @@
     SymbolType* symtype;
 }
 
+// terminals of type char* for various constants
 %token <text> FLOATING_CONSTANT INTEGER_CONSTANT CHAR_CONSTANT STRING_LITERAL
+// terminals of UDT Symbol for variables (which will be stored as symbols in the symbol table)
 %token <sym> IDENTIFIER
+// terminals of type char* to store the operator
 %token <op> ASTERISK PLUS MINUS DIV MOD LEFT_SHIFT RIGHT_SHIFT LT GT LE GE EQ NE
+// manifests for other lexemes
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND TILDE NOT XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
-%token ENUM STRUCT UNION TYPEDEF HASH
+%token ENUM STRUCT UNION TYPEDEF HASH INVALID
+
+// non-terminal of UDT: Expression* 
 %type <expr> constant expression expression_opt primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression selection_expression
+// non-terminal of UDT: Array*
 %type <arr> postfix_expression unary_expression cast_expression
+// non-terminal of UDT: Statement*
 %type <stmt> statement expression_statement compound_statement selection_statement iteration_statement labeled_statement jump_statement block_item block_item_list block_item_list_opt N
+// non-terminal of type int to get no. of arguments, type of unary operator, and index of next instruction, respectively
 %type <num> argument_expression_list argument_expression_list_opt unary_operator M
+// non-terminal of UDT: Symbol*
 %type <sym> initializer direct_declarator init_declarator declarator
+// non-terminal of UDT: SymbolType*
 %type <symtype> pointer
+// non-terminal of type char* to store the operator
 %type <op> relop mulop addop shiftop eqop
+// other non-terminals for the TinyC grammar
 %type type_name initializer_list constant_expression assignment_operator declaration declaration_specifiers declaration_specifiers_opt init_declarator_list init_declarator_list_opt storage_class_specifier type_specifier type_qualifier function_specifier specifier_qualifier_list specifier_qualifier_list_opt type_qualifier_list type_qualifier_list_opt parameter_type_list identifier_list parameter_list parameter_declaration designation designation_opt designator_list designator translation_unit external_declaration function_definition declaration_list declaration_list_opt tinyC_start
 
+// Augmentation: to handle the precedence of the pseudo-else
 %nonassoc PSEUDO_ELSE
 %nonassoc ELSE
 
@@ -61,17 +75,17 @@ constant
         : INTEGER_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_INT, $1));
-            emit("=", $$->symbol->name, $1);
+            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
         }
         | FLOATING_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_FLOAT, $1));
-            emit("=", $$->symbol->name, $1);
+            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
         }
         | CHAR_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_CHAR, $1));
-            emit("=", $$->symbol->name, $1);
+            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
         }
         ;
 
@@ -92,30 +106,30 @@ postfix_expression
             if($1->type == Array::ARRAY){
                 Symbol *tempSym = gentemp(TYPE_INT);
                 int sz = $$->childType->getSize();
-                emit("*", tempSym->name, $3->symbol->name, to_string(sz));
-                emit("+", $$->loca->name, $1->loca->name, tempSym->name);
+                parseEnv->quadTable->emit("*", tempSym->name, $3->symbol->name, to_string(sz));
+                parseEnv->quadTable->emit("+", $$->loca->name, $1->loca->name, tempSym->name);
             }
             else{
                 int sz = $$->childType->getSize();
-                emit("*", $$->loca->name, $3->symbol->name, to_string(sz));
+                parseEnv->quadTable->emit("*", $$->loca->name, $3->symbol->name, to_string(sz));
             }
         }
         | postfix_expression LPAREN argument_expression_list_opt RPAREN
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
+            parseEnv->quadTable->emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
         }
         | postfix_expression INC
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            emit("=", $$->symbol->name, $1->symbol->name);
-            emit("+", $1->symbol->name, $1->symbol->name, "1");
+            parseEnv->quadTable->emit("=", $$->symbol->name, $1->symbol->name);
+            parseEnv->quadTable->emit("+", $1->symbol->name, $1->symbol->name, "1");
         }
         | postfix_expression DEC
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            emit("=", $$->symbol->name, $1->symbol->name);
-            emit("-", $1->symbol->name, $1->symbol->name, "1");
+            parseEnv->quadTable->emit("=", $$->symbol->name, $1->symbol->name);
+            parseEnv->quadTable->emit("-", $1->symbol->name, $1->symbol->name, "1");
         }
         | postfix_expression DOT IDENTIFIER                             { /*Ignore*/ }
         | postfix_expression ARROW IDENTIFIER                           { /*Ignore*/ }
@@ -127,15 +141,16 @@ argument_expression_list
         : assignment_expression
         { 
             $$ = 1;
-            emit("param",$1->symbol->name);
+            parseEnv->quadTable->emit("param",$1->symbol->name);
         }
         | argument_expression_list COMMA assignment_expression
         {
             $$ = 1 + $1;
-            emit("param",$3->symbol->name);
+            parseEnv->quadTable->emit("param",$3->symbol->name);
         }
         ;
 
+// Augmentation: to either produce an epsilon or a list of arguments
 argument_expression_list_opt:
         argument_expression_list        {$$ = $1; /* Copy no. of arguments */}
         | {/* Empty */}                 {$$ = 0; /* No arguments */}
@@ -147,12 +162,12 @@ unary_expression:
         | INC unary_expression
         {
             $$ = $2;
-            emit("+", $2->symbol->name, $2->symbol->name, "1");
+            parseEnv->quadTable->emit("+", $2->symbol->name, $2->symbol->name, "1");
         }
         | DEC unary_expression
         {
             $$ = $2;
-            emit("-", $2->symbol->name, $2->symbol->name, "1");
+            parseEnv->quadTable->emit("-", $2->symbol->name, $2->symbol->name, "1");
         }
         | unary_operator cast_expression
         {
@@ -160,29 +175,29 @@ unary_expression:
                 case AMPERSAND:
                     $$ = new Array(gentemp(TYPE_PTR));
                     $$->symbol->type->arrType = $2->symbol->type;
-                    emit("= &", $$->symbol->name, $2->symbol->name);
+                    parseEnv->quadTable->emit("= &", $$->symbol->name, $2->symbol->name);
                     break;
                 case ASTERISK:
                     $$ = new Array($2->symbol);
                     $$->loca = gentemp($2->loca->type->arrType->type);
                     $$->loca->type->arrType = $2->loca->type->arrType->arrType;
                     $$->type = Array::POINTER;
-                    emit("= *", $$->loca->name, $2->loca->name);
+                    parseEnv->quadTable->emit("= *", $$->loca->name, $2->loca->name);
                     break;
                 case PLUS:
                     $$ = $2;
                     break;
                 case MINUS:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("= -", $$->symbol->name, $2->symbol->name);
+                    parseEnv->quadTable->emit("= -", $$->symbol->name, $2->symbol->name);
                     break;
                 case TILDE:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("= ~", $$->symbol->name, $2->symbol->name);
+                    parseEnv->quadTable->emit("= ~", $$->symbol->name, $2->symbol->name);
                     break;
                 case NOT:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    emit("= !", $$->symbol->name, $2->symbol->name);
+                    parseEnv->quadTable->emit("= !", $$->symbol->name, $2->symbol->name);
                     break;
             }
         }
@@ -211,7 +226,7 @@ multiplicative_expression
                 SymbolType *baseType = $1->symbol->type;
                 while(baseType->arrType != NULL) baseType = baseType->arrType;
                 $$ = new Expression(gentemp(baseType->type));
-                emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
+                parseEnv->quadTable->emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
             }
             else if($1->type == Array::POINTER){
                 $$ = new Expression($1->loca);
@@ -230,7 +245,7 @@ multiplicative_expression
 
             if($3->type == Array::ARRAY){
                 temp = gentemp(baseType->type);
-                emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
+                parseEnv->quadTable->emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
             } 
             else if($3->type == Array::POINTER){
                 temp = $3->loca;
@@ -242,7 +257,7 @@ multiplicative_expression
             if(typeCheck($1->symbol, temp)){
                 $$ = new Expression();
                 $$->symbol = gentemp($1->symbol->type->type);
-                emit($2, $$->symbol->name, $1->symbol->name, temp->name);
+                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, temp->name);
             } 
             else{
                 yyerror("Type mismatch!");
@@ -250,6 +265,7 @@ multiplicative_expression
         }
         ;
 
+// Augmentation: to generalize the operations in multiplicative expressions
 mulop
         : ASTERISK 
         | DIV      
@@ -262,7 +278,7 @@ additive_expression
         {   
             if(typeCheck($1->symbol, $3->symbol)) {
                 $$ = new Expression(gentemp($1->symbol->type->type));
-                emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
                 yyerror("Type mismatch!");
@@ -270,6 +286,7 @@ additive_expression
         }
         ;
 
+// Augmentation: to generalize the operations in additive expressions
 addop
         : PLUS 
         | MINUS
@@ -281,7 +298,7 @@ shift_expression
         { 
             if($3->symbol->type->type == TYPE_INT) {
                 $$ = new Expression(gentemp(TYPE_INT));
-                emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
                 yyerror("<<: Type mismatch!");
@@ -289,6 +306,7 @@ shift_expression
         }
         ;
 
+// Augmentation: to generalize the operations in shift expressions
 shiftop
         : LEFT_SHIFT 
         | RIGHT_SHIFT
@@ -303,8 +321,8 @@ relational_expression
                 $$->type = Expression::BOOL;
                 $$->truelist = makelist(nextinstr());
                 $$->falselist = makelist(nextinstr() + 1);
-                emit($2, "", $1->symbol->name, $3->symbol->name);
-                emit("goto", "");
+                parseEnv->quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
+                parseEnv->quadTable->emit("goto", "");
             } 
             else {
                 yyerror("Type mismatch!");
@@ -312,6 +330,7 @@ relational_expression
         }
         ;
 
+// Augmentation: to generalize the operations in relational expressions
 relop
         : LT
         | GT
@@ -332,8 +351,8 @@ equality_expression
                 $$->truelist = makelist(nextinstr());
                 $$->falselist = makelist(nextinstr() + 1);
 
-                emit($2, "", $1->symbol->name, $3->symbol->name);
-                emit("goto", "");
+                parseEnv->quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
+                parseEnv->quadTable->emit("goto", "");
 
             } 
             else {
@@ -342,6 +361,7 @@ equality_expression
         }
         ;
 
+// Augmentation: to generalize the operations in equality expressions
 eqop
         : EQ
         | NE
@@ -358,7 +378,7 @@ and_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            emit("&", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            parseEnv->quadTable->emit("&", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -373,7 +393,7 @@ exclusive_or_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            emit("^", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            parseEnv->quadTable->emit("^", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -388,7 +408,7 @@ inclusive_or_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            emit("|", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            parseEnv->quadTable->emit("|", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -429,16 +449,16 @@ conditional_expression
         | logical_or_expression N QUESTION M expression N COLON M conditional_expression
         { 
             $$->symbol = gentemp($5->symbol->type->type);
-            emit("=", $$->symbol->name, $9->symbol->name);
+            parseEnv->quadTable->emit("=", $$->symbol->name, $9->symbol->name);
 
             list<int> l = makelist(nextinstr());
-            emit("goto", "");
+            parseEnv->quadTable->emit("goto", "");
 
             backpatch($6->nextlist, nextinstr());
-            emit("=", $$->symbol->name, $5->symbol->name);
+            parseEnv->quadTable->emit("=", $$->symbol->name, $5->symbol->name);
 
             l = merge(l, makelist(nextinstr()));
-            emit("goto", "");
+            parseEnv->quadTable->emit("goto", "");
 
             backpatch($2->nextlist, nextinstr());
 
@@ -458,15 +478,15 @@ assignment_expression
             switch($1->type){
                 case Array::ARRAY:
                     $3->symbol = $3->symbol->convertType($1->childType->type);
-                    emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
+                    parseEnv->quadTable->emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
                     break;
                 case Array::POINTER:
                     $3->symbol = $3->symbol->convertType($1->loca->type->type);
-                    emit("*=", $1->loca->name, $3->symbol->name);
+                    parseEnv->quadTable->emit("*=", $1->loca->name, $3->symbol->name);
                     break;
                 default:
                     $3->symbol = $3->symbol->convertType($1->symbol->type->type);
-                    emit("=", $1->symbol->name, $3->symbol->name);
+                    parseEnv->quadTable->emit("=", $1->symbol->name, $3->symbol->name);
                     break;
             }
             
@@ -510,6 +530,7 @@ declaration_specifiers
         | function_specifier declaration_specifiers_opt         { /*Ignore*/ }
         ;
 
+// Augmentation: to either produce an epsilon or declaration specifiers
 declaration_specifiers_opt
         : declaration_specifiers        { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
@@ -520,6 +541,7 @@ init_declarator_list
         | init_declarator_list COMMA init_declarator    { /*Ignore*/ }
         ;
 
+// Augmentation: to either produce an epsilon or a list of init declarators
 init_declarator_list_opt
         : init_declarator_list          { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
@@ -530,7 +552,7 @@ init_declarator
         | declarator ASSIGN initializer
         {
             if($3->initial_value != "-") $1->initial_value = $3->initial_value;
-            emit("=", $1->name, $3->name);
+            parseEnv->quadTable->emit("=", $1->name, $3->name);
         }
         ;
 
@@ -561,6 +583,7 @@ specifier_qualifier_list
         | type_qualifier specifier_qualifier_list_opt   { /*Ignore*/ }
         ;
         
+// Augmentation: to either produce an epsilon or a list of specifier qualifiers
 specifier_qualifier_list_opt
         : specifier_qualifier_list      { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
@@ -691,6 +714,7 @@ type_qualifier_list
         | type_qualifier_list type_qualifier    { /*Ignore*/ }
         ;
 
+// Augmentation: to either produce an epsilon or a list of type qualifiers
 type_qualifier_list_opt
         : type_qualifier_list           { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
@@ -735,6 +759,7 @@ designation
         : designator_list ASSIGN                  { /*Ignore*/ }
         ;
 
+// Augmentation: to either produce an epsilon or a designation
 designation_opt
         : designation                   { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
@@ -784,6 +809,7 @@ block_item_list
         }
         ;
 
+// Augmentation: to either produce an epsilon or a list of block items
 block_item_list_opt
         : block_item_list               {$$ = $1; /*Simple Assignment*/}
         | {/* Empty */}                 {$$ = new Statement();}
@@ -798,6 +824,7 @@ expression_statement
         : expression_opt SEMICOLON      {$$ = new Statement();}
         ;
 
+// Augmentation: to either produce an epsilon or an expression
 expression_opt
         : expression                    {$$ = $1;}
         | {/* Empty */}                 {$$ = new Expression();}
@@ -823,6 +850,7 @@ selection_statement
         | SWITCH LPAREN expression RPAREN statement                             { /*Ignore*/ }
         ;
 
+// Augmentation: to convert the expression into Boolean for selection statements
 selection_expression: expression {$1->convtoBool(); $$ = $1;}
 
 iteration_statement
@@ -837,7 +865,7 @@ iteration_statement
 
             $$->nextlist = $4->falselist;
 
-            emit("goto", to_string($2));
+            parseEnv->quadTable->emit("goto", to_string($2));
         }
         | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON
         { 
@@ -861,7 +889,7 @@ iteration_statement
             backpatch($10->nextlist, $5);
             backpatch($13->nextlist, $8);
 
-            emit("goto", to_string($8));
+            parseEnv->quadTable->emit("goto", to_string($8));
 
             $$->nextlist = $6->falselist;
         }
@@ -875,7 +903,7 @@ jump_statement
         | RETURN expression_opt SEMICOLON
         {   
             $$ = new Statement();
-            emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
+            parseEnv->quadTable->emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
         }
         ;
 
@@ -905,25 +933,29 @@ declaration_list
         | declaration_list declaration  { /*Ignore*/ }
         ;
 
+// Augmentation: to either produce an epsilon or a list of declarations
 declaration_list_opt
         : declaration_list              { /*Ignore*/ }
         | {/* Empty */}                 { /*Ignore*/ }
         ;
 
 
-/* New Non-Terminals */
+/* Augmentation: Marker Non-Terminals */
 
+// to get the next instruction for backpatching
 M   :  { $$ = nextinstr(); }
     ;
 
+// to emit a goto statement to skip the else part
 N   : 
     {
         $$ = new Statement();
         $$->nextlist = makelist(nextinstr());
-        emit("goto", "");
+        parseEnv->quadTable->emit("goto", "");
     }
     ;
 
+// to switch symbol tables for function definitions
 CT  : 
     {
         if(parseEnv->currSymbol->nestedTable == NULL) {
@@ -934,11 +966,12 @@ CT  :
         else {
             parseEnv->currSymbol->nestedTable->parent = parseEnv->STstack.top();
             parseEnv->STstack.push(parseEnv->currSymbol->nestedTable);
-            emit("label",parseEnv->STstack.top()->name);
+            parseEnv->quadTable->emit("label",parseEnv->STstack.top()->name);
         }
     }
     ;
 
+// to switch symbol tables for block items (if,else,for,while,do)
 CB  : 
     {
         string name = parseEnv->STstack.top()->name + "_" + to_string(parseEnv->blockCount++);

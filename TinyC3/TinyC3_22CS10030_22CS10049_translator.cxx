@@ -33,12 +33,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_INT){
         if(retType == TYPE_FLOAT){
             Symbol* temp = gentemp(TYPE_FLOAT);
-            emit("=", temp->name, "inttofloat(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "inttofloat(" + name + ")");
             return temp;
         }
         if(retType == TYPE_CHAR){
             Symbol* temp = gentemp(TYPE_CHAR);
-            emit("=", temp->name, "inttochar(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "inttochar(" + name + ")");
             return temp;
         }
         return this;
@@ -47,12 +47,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_FLOAT){
         if(retType == TYPE_INT){
             Symbol* temp = gentemp(TYPE_INT);
-            emit("=", temp->name, "floattoint(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "floattoint(" + name + ")");
             return temp;
         }
         if(retType == TYPE_CHAR){
             Symbol* temp = gentemp(TYPE_CHAR);
-            emit("=", temp->name, "floattochar(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "floattochar(" + name + ")");
             return temp;
         }
         return this;
@@ -61,12 +61,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_CHAR){
         if(retType == TYPE_INT){
             Symbol* temp = gentemp(TYPE_INT);
-            emit("=", temp->name, "chartoint(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "chartoint(" + name + ")");
             return temp;
         }
         if(retType == TYPE_FLOAT){
             Symbol* temp = gentemp(TYPE_FLOAT);
-            emit("=", temp->name, "chartofloat(" + name + ")");
+            parseEnv->quadTable->emit("=", temp->name, "chartofloat(" + name + ")");
             return temp;
         }
         return this;
@@ -222,19 +222,19 @@ void Expression::convtoInt(){
         symbol = gentemp(TYPE_INT);
 
         backpatch(truelist, nextinstr());
-        emit("=", symbol->name, "1"); 
+        parseEnv->quadTable->emit("=", symbol->name, "1"); 
 
-        emit("goto", to_string(nextinstr() + 2));  
+        parseEnv->quadTable->emit("goto", to_string(nextinstr() + 2));  
 
         backpatch(falselist, nextinstr());
-        emit("=", symbol->name, "0");
+        parseEnv->quadTable->emit("=", symbol->name, "0");
     }
 }
 
 void Expression::convtoBool(){
     if(type == Expression::NONBOOL){
         falselist = makelist(nextinstr());
-        emit("ff", "", symbol->name);
+        parseEnv->quadTable->emit("ff", "", symbol->name);
 
         // truelist = makelist(nextinstr());
         // emit("goto", "");
@@ -270,12 +270,12 @@ Environment::Environment(){
 
 /* Global Functions */
 
-void emit(string op, string res, string arg1, string arg2){
-    parseEnv->quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
+void QuadTable::emit(string op, string res, string arg1, string arg2){
+    quads.push_back(new Quadruple(res, arg1, op, arg2));
 }
 
-void emit(string op, string res, int arg1, string arg2){
-    parseEnv->quadTable->quads.push_back(new Quadruple(res, arg1, op, arg2));
+void QuadTable::emit(string op, string res, int arg1, string arg2){
+    quads.push_back(new Quadruple(res, arg1, op, arg2));
 }
 
 list<int> makelist(int i){

@@ -76,7 +76,7 @@ class: Symbol
     initial_value: string -- initial value of the symbol
     size: int -- size of the symbol
     offset: int -- offset of the symbol in the symbol table
-    nestedTable: SymbolTable* --
+    nestedTable: SymbolTable* -- to create symbol tables within a parent table (that signifies scope)
 *methods:
     Symbol(string, TYPE, string) -- constructor
     update(SymbolType*) -- updates the type of the symbol to the given type
@@ -159,6 +159,10 @@ class: QuadTable
 *methods:
     QuadTable() -- constructor
     print() -- prints the quad table
+    emit() -- overloaded method to add quad: "result = arg1 op arg2" 
+        op missing => copy instruction
+        arg2 missing => unary operation
+        otherwise => binary operation
 */
 class QuadTable {
 public:
@@ -166,6 +170,8 @@ public:
 
     QuadTable();
     void print();
+    void emit(string, string, string="", string="");
+    void emit(string, string, int, string="");
 };
 
 /*
@@ -260,17 +266,31 @@ public:
 extern Environment* parseEnv;
 
 // Global functions
-void emit(string, string, string="", string="");
-void emit(string, string, int, string="");
 
+// to create and return a new list containing only one index to quadTable
 list<int> makelist(int);
+
+// to concatenate two lists return the concatenated list
 list<int> merge(list<int>, list<int>);
+
+// to insert target label for each of the quads on the list
 void backpatch(list<int>, int);
 
+/*
+function: typeCheck
+
+- i/p: Symbol*&, Symbol*&
+- o/p: bool: returns true if compatible
+
+- purpose: overloaded method to check compatibility of the two symbols and convert to appropriate type if necessary
+*/
 bool typeCheck(Symbol *&, Symbol *&);
 bool typeCheck(SymbolType *, SymbolType *);
 
+// to get the next instruction number
 int nextinstr();
+
+// to generate a new temporary variable
 Symbol* gentemp(TYPE, string = "-");
 
 #endif
