@@ -13,5 +13,17 @@ int main(){
         y = x > 10 ? 10 : 20;
     }
 
+    int a,b,c;
+
+    if (a){
+        c = 10;
+    }
+    else if(b){
+        c = 20;
+    }
+    else{
+        c = 30;
+    }
+    
     return 0;
 }

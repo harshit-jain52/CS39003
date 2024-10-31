@@ -24,7 +24,7 @@
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND TILDE NOT XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
 %token ENUM STRUCT UNION TYPEDEF HASH
-%type <expr> constant expression expression_opt primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression
+%type <expr> constant expression expression_opt primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression selection_expression
 %type <arr> postfix_expression unary_expression cast_expression
 %type <stmt> statement expression_statement compound_statement selection_statement iteration_statement labeled_statement jump_statement block_item block_item_list block_item_list_opt N
 %type <num> argument_expression_list argument_expression_list_opt unary_operator M
@@ -803,21 +803,17 @@ expression_opt
         | {/* Empty */}                 {$$ = new Expression();}
 
 selection_statement
-        : IF LPAREN expression RPAREN M statement N  %prec PSEUDO_ELSE
+        : IF LPAREN selection_expression RPAREN M statement N  %prec PSEUDO_ELSE
         { 
             $$ = new Statement();
-
-            $3->convtoBool();
 
             backpatch($3->truelist, $5);
 
             $$->nextlist = merge($3->falselist, merge($6->nextlist, $7->nextlist));
         }
-        | IF LPAREN expression RPAREN M statement N ELSE M statement
+        | IF LPAREN selection_expression RPAREN M statement N ELSE M statement
         { 
             $$ = new Statement();
-
-            $3->convtoBool();
 
             backpatch($3->truelist, $5);
             backpatch($3->falselist, $9);
@@ -826,6 +822,8 @@ selection_statement
         }
         | SWITCH LPAREN expression RPAREN statement                             { /*Ignore*/ }
         ;
+
+selection_expression: expression {$1->convtoBool(); $$ = $1;}
 
 iteration_statement
         : WHILE M LPAREN expression RPAREN M statement

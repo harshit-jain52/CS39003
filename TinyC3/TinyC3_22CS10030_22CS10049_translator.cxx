@@ -161,6 +161,9 @@ void Quadruple::print(){
     else if (op == "==" || op == "!=" || op == "<=" || op == ">=" || op == "<" || op == ">"){
         cout << "if " << arg1 << " " << op << " " << arg2 << " goto " << res << endl;
     }
+    else if(op=="ff"){
+        cout << "ifFalse " << arg1 << " goto " << res << endl;
+    }
     else if(op == "= &" || op == "= *" || op == "= -" || op == "= !" || op == "= ~"){
         cout << res << " " << op << arg1 << endl;
     }
@@ -231,12 +234,10 @@ void Expression::convtoInt(){
 void Expression::convtoBool(){
     if(type == Expression::NONBOOL){
         falselist = makelist(nextinstr());
+        emit("ff", "", symbol->name);
 
-        emit("==", "", symbol->name, "0");
-
-        truelist = makelist(nextinstr());
-
-        emit("goto", "");
+        // truelist = makelist(nextinstr());
+        // emit("goto", "");
     }
 }
 
