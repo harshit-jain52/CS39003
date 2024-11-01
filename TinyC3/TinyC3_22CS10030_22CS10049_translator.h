@@ -79,9 +79,10 @@ class: Symbol
     nestedTable: SymbolTable* -- to create symbol tables within a parent table (that signifies scope)
 *methods:
     Symbol(string, TYPE, string) -- constructor
+    setinit(Symbol*) -- sets the initial value of the symbol based on another symbol
     update(SymbolType*) -- updates the type of the symbol to the given type
     convertType(TYPE) -- converts the type of the symbol to the given type
-    setinit(Symbol*) -- sets the initial value of the symbol based on another symbol
+    print() -- prints the symbol
 */
 class Symbol {
 public:
@@ -93,9 +94,10 @@ public:
     SymbolTable* nestedTable;
 
     Symbol(string, TYPE = TYPE_INT, string="-");
+    void setinit(Symbol*);
     Symbol* update(SymbolType*);
     Symbol* convertType(TYPE);
-    void setinit(Symbol*);
+    void print();
 };
 
 /*
@@ -109,8 +111,8 @@ class: SymbolTable
 *methods:
     SymbolTable(string, SymbolTable*) -- constructor
     lookup(string) -- looks up a symbol in the symbol table, adds it if not found
-    print() -- prints the symbol table
     update() -- updates the symbol table
+    print() -- prints the symbol table
 */
 class SymbolTable {
 public:
@@ -122,8 +124,8 @@ public:
     SymbolTable(string = "NULL", SymbolTable* = NULL);
     Symbol* lookup(string);
 
-    void print();
     void update();
+    void print();
 };
 
 /*
