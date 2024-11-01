@@ -995,5 +995,7 @@ tinyC_start:
 %%
 
 void yyerror(const char* s) {
-    throw s;
+    char* msg = (char*)malloc(strlen(s) + 500);
+    sprintf(msg, "ERROR [Line %d] : %s, unable to parse : %s\n", yylineno, s, yytext);
+    throw msg;
 }
