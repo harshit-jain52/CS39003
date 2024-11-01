@@ -222,7 +222,7 @@ NEWLINE                 \n
 {HASH}                  { return HASH; }
 
 {WS}                    { /* ignore */ }
-.                       { /* ignore */ }
+.                       { return INVALID_TOKEN; }
 
 
 %%

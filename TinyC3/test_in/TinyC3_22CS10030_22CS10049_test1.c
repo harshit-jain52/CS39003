@@ -3,8 +3,9 @@
 int main() {
     int x,y,z; 
 
-    ++x; 
-    x++; 
+    x=4; y=3; z=2;
+
+    x = x++ + ++x;  
     y--; 
     --y;
     z = ~x + 10;
@@ -12,13 +13,12 @@ int main() {
     x = y >> 3; 
     x = y << 3;
 
-
     float a; 
 
     a = -x + (y*z)/3;
 
     a = (x|y) & z; 
-    
+
     int* w = &x;
 
     int p = 3.14;

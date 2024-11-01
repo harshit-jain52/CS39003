@@ -27,7 +27,7 @@
 %token SIZEOF EXTERN STATIC AUTO REGISTER VOID CHAR SHORT INT LONG FLOAT DOUBLE SIGNED UNSIGNED BOOL_ COMPLEX_ IMAGINARY_ CONST RESTRICT VOLATILE INLINE CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token LSQPAREN RSQPAREN LPAREN RPAREN LBRACE RBRACE
 %token DOT ARROW INC DEC AMPERSAND TILDE NOT XOR OR LOGICAL_OR LOGICAL_AND QUESTION COLON SEMICOLON ELLIPSIS ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN COMMA
-%token ENUM STRUCT UNION TYPEDEF HASH INVALID
+%token ENUM STRUCT UNION TYPEDEF HASH INVALID_TOKEN
 
 // non-terminal of UDT: Expression* 
 %type <expr> constant expression expression_opt primary_expression multiplicative_expression additive_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression conditional_expression assignment_expression selection_expression
@@ -59,32 +59,32 @@
 primary_expression
         : IDENTIFIER
         { 
+            // Check if the variable is already declared else cerate a new expression
             if($1 == NULL) yyerror("Undefined variable!");
             $$ = new Expression($1);
             $$->type = Expression::NONBOOL;
         }
-        | constant                      {$$ = $1;}
-        | STRING_LITERAL
-        {
-            $$ = new Expression(gentemp(TYPE_PTR, $1));
-            $$->type = Expression::NONBOOL;
-        }
+        | constant                      {$$ = $1;}  
+        | STRING_LITERAL                { /* Ignore */ }
         | LPAREN expression RPAREN      {$$ = $2; /* Simple Assignment */}
         ;
 
 constant
         : INTEGER_CONSTANT
         {
+            // Create a new expression with integer constant
             $$ = new Expression(gentemp(TYPE_INT, $1));
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
         | FLOATING_CONSTANT
         {
+            // Create a new expression with floating constant
             $$ = new Expression(gentemp(TYPE_FLOAT, $1));
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
         | CHAR_CONSTANT
-        {
+        {   
+            // Create a new expression with character constant
             $$ = new Expression(gentemp(TYPE_CHAR, $1));
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
@@ -92,19 +92,23 @@ constant
 
 postfix_expression
         : primary_expression
-        {
+        {   
+            // creates a new Array whose type is neither "array" nor "pointer" 
+            // childtype refers to the type of the elements of the array 
             $$ = new Array($1->symbol);
             $$->loca = $$->symbol;
             $$->childType = $1->symbol->type;
         }
         | postfix_expression LSQPAREN expression RSQPAREN
         {
+            // creates a new Array object which defines the TAC generation for C arrays 
             $$ = new Array($1->symbol);
             $$->loca = gentemp(TYPE_INT);
             $$->childType = $1->childType->arrType;
             $$->type = Array::ARRAY;
 
             if($1->type == Array::ARRAY){
+                // multiplying size and adding offset to handle multi-dimensional arrays
                 Symbol *tempSym = gentemp(TYPE_INT);
                 int sz = $$->childType->getSize();
                 Environment::parseEnv().quadTable->emit("*", tempSym->name, $3->symbol->name, to_string(sz));
@@ -117,17 +121,20 @@ postfix_expression
         }
         | postfix_expression LPAREN argument_expression_list_opt RPAREN
         {
+            // creates a new Array object which defines the TAC generation for C functions
             $$ = new Array(gentemp($1->symbol->type->type));
             Environment::parseEnv().quadTable->emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
         }
         | postfix_expression INC
         {
+            // creates a new Array object which defines the TAC generation for C increment
             $$ = new Array(gentemp($1->symbol->type->type));
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1->symbol->name);
             Environment::parseEnv().quadTable->emit("+", $1->symbol->name, $1->symbol->name, "1");
         }
         | postfix_expression DEC
         {
+            // creates a new Array object which defines the TAC generation for C decrement
             $$ = new Array(gentemp($1->symbol->type->type));
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1->symbol->name);
             Environment::parseEnv().quadTable->emit("-", $1->symbol->name, $1->symbol->name, "1");
@@ -141,11 +148,13 @@ postfix_expression
 argument_expression_list
         : assignment_expression
         { 
+            // signifies 1 parameter and its TAC generation
             $$ = 1;
             Environment::parseEnv().quadTable->emit("param",$1->symbol->name);
         }
         | argument_expression_list COMMA assignment_expression
-        {
+        {   
+            // signifies the no. of parameters and their TAC generation
             $$ = 1 + $1;
             Environment::parseEnv().quadTable->emit("param",$3->symbol->name);
         }
@@ -162,16 +171,19 @@ unary_expression:
         postfix_expression                      {$$ = $1;}
         | INC unary_expression
         {
+            // TAC for unary increment: x = x+1;
             $$ = $2;
             Environment::parseEnv().quadTable->emit("+", $2->symbol->name, $2->symbol->name, "1");
         }
         | DEC unary_expression
         {
+            // TAC for unary decrement: x = x-1;
             $$ = $2;
             Environment::parseEnv().quadTable->emit("-", $2->symbol->name, $2->symbol->name, "1");
         }
         | unary_operator cast_expression
-        {
+        {   
+            // TAC for unary operators: y = (op)x;
             switch($1){
                 case AMPERSAND:
                     $$ = new Array(gentemp(TYPE_PTR));
@@ -217,33 +229,42 @@ unary_operator
 
 cast_expression
         : unary_expression                        {$$ = $1;}
-        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(Environment::parseEnv().currType));}
+        | LPAREN type_name RPAREN cast_expression 
+        {   
+            // creates a new Array object that defines the TAC type conversion printing for the typecasting 
+            $$ = new Array($4->symbol->convertType(Environment::parseEnv().currType));
+        }
         ;
 
 multiplicative_expression
         : cast_expression
         {
+            // for array type, emit the relevant TAC
             if($1->type == Array::ARRAY){
                 SymbolType *baseType = $1->symbol->type;
                 while(baseType->arrType != NULL) baseType = baseType->arrType;
                 $$ = new Expression(gentemp(baseType->type));
                 Environment::parseEnv().quadTable->emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
             }
+            // for pointer type, store the location of the pointer
             else if($1->type == Array::POINTER){
                 $$ = new Expression($1->loca);
             }
+            // else, store the symbol
             else{
                 $$ = new Expression($1->symbol);
             }
         }
         | multiplicative_expression mulop cast_expression
         {
+            // obtain the base type of the symbol
             SymbolType *baseType = $1->symbol->type;
             while(baseType->arrType != NULL)
                 baseType = baseType->arrType;
 
             Symbol *temp;
 
+            // perform similar operations as above
             if($3->type == Array::ARRAY){
                 temp = gentemp(baseType->type);
                 Environment::parseEnv().quadTable->emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
@@ -255,6 +276,7 @@ multiplicative_expression
                 temp = $3->symbol;
             }
 
+            // check type compatibility for the operations
             if(typeCheck($1->symbol, temp)){
                 $$ = new Expression();
                 $$->symbol = gentemp($1->symbol->type->type);
@@ -277,6 +299,7 @@ additive_expression
         : multiplicative_expression                             {$$ = $1; /* Simple Assignment */}
         | additive_expression addop multiplicative_expression
         {   
+            // check type compatibility for the operations
             if(typeCheck($1->symbol, $3->symbol)) {
                 $$ = new Expression(gentemp($1->symbol->type->type));
                 Environment::parseEnv().quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
@@ -297,6 +320,7 @@ shift_expression
         : additive_expression                                   {$$ = $1; /* Simple Assignment */}
         | shift_expression shiftop additive_expression
         { 
+            // generate the TAC for the shift operations
             if($3->symbol->type->type == TYPE_INT) {
                 $$ = new Expression(gentemp(TYPE_INT));
                 Environment::parseEnv().quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
@@ -317,6 +341,8 @@ relational_expression
         : shift_expression                              {$$ = $1; /* Simple Assignment */}
         | relational_expression relop shift_expression
         {   
+            // if types are compatible, make an expression of type BOOL 
+            // 2 lists are created for true and false cases, which determine which instruction to go to next
             if(typeCheck($1->symbol, $3->symbol)) {
                 $$ = new Expression();
                 $$->type = Expression::BOOL;
@@ -343,6 +369,7 @@ equality_expression
         : relational_expression                         {$$ = $1; /* Simple Assignment */}
         | equality_expression eqop relational_expression
         { 
+            // performs the type compatibility check and does the TAC generation similar to relop
             if(typeCheck($1->symbol, $3->symbol)) {
                 $1->convtoInt();
                 $3->convtoInt();
@@ -372,6 +399,7 @@ and_expression
         : equality_expression                           {$$ = $1; /* Simple Assignment */}
         | and_expression AMPERSAND equality_expression
         { 
+            // performs the bitwise operation x&y and converts x and y to integers if required
             $1->convtoInt();
             $3->convtoInt();
 
@@ -387,6 +415,7 @@ exclusive_or_expression
         : and_expression                                {$$ = $1; /* Simple Assignment */}
         | exclusive_or_expression XOR and_expression
         { 
+            // performs the bitwise operation x^y and converts x and y to integers if required
             $1->convtoInt();
             $3->convtoInt();
 
@@ -401,7 +430,8 @@ exclusive_or_expression
 inclusive_or_expression
         : exclusive_or_expression                               {$$ = $1; /* Simple Assignment */}
         | inclusive_or_expression OR exclusive_or_expression
-        { 
+        {   
+            // performs the bitwise operation x|y and converts x and y to integers if required
             $1->convtoInt();
             $3->convtoInt();
 
@@ -417,6 +447,7 @@ logical_and_expression
         : inclusive_or_expression                                           {$$ = $1; /* Simple Assignment */}
         | logical_and_expression LOGICAL_AND M inclusive_or_expression
         { 
+            // converts the operands to boolean and sets the instruction list for the true and false cases
             $1->convtoBool();
             $4->convtoBool();
 
@@ -433,6 +464,7 @@ logical_or_expression
         : logical_and_expression                                            {$$ = $1; /* Simple Assignment */}
         | logical_or_expression LOGICAL_OR M logical_and_expression
         {  
+            // converts the operands to boolean and sets the instruction list for the true and false cases
             $1->convtoBool();
             $4->convtoBool();
 
@@ -449,15 +481,18 @@ conditional_expression
         : logical_or_expression                                                             {$$ = $1; /* Simple Assignment */}
         | logical_or_expression N QUESTION M expression N COLON M conditional_expression
         { 
+            // create a temporary variable to store the result of the conditional expression
             $$->symbol = gentemp($5->symbol->type->type);
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $9->symbol->name);
 
+            // create a list of instructions to jump to the next instruction
             list<int> l = makelist(nextinstr());
             Environment::parseEnv().quadTable->emit("goto", "");
 
             backpatch($6->nextlist, nextinstr());
             Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $5->symbol->name);
 
+            // concatenate the lists 
             l = merge(l, makelist(nextinstr()));
             Environment::parseEnv().quadTable->emit("goto", "");
 
@@ -478,14 +513,17 @@ assignment_expression
         {   
             switch($1->type){
                 case Array::ARRAY:
+                    // convert to childtype if required
                     $3->symbol = $3->symbol->convertType($1->childType->type);
                     Environment::parseEnv().quadTable->emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
                     break;
                 case Array::POINTER:
+                    // convert to type of the location pointed to
                     $3->symbol = $3->symbol->convertType($1->loca->type->type);
                     Environment::parseEnv().quadTable->emit("*=", $1->loca->name, $3->symbol->name);
                     break;
                 default:
+                    // convert to the type of the symbol
                     $3->symbol = $3->symbol->convertType($1->symbol->type->type);
                     Environment::parseEnv().quadTable->emit("=", $1->symbol->name, $3->symbol->name);
                     break;
@@ -551,8 +589,10 @@ init_declarator_list_opt
 init_declarator
         : declarator                            {$$ = $1;}
         | declarator ASSIGN initializer
-        {
+        {   
+            // set init gives the initial of either the RHS or "-" (if initialized value is not of the declared type) 
             $1->setinit($3);
+            // performs type conversion incase of mismatch in declared and initialized types
             $3 = $3->convertType($1->type->type);
             Environment::parseEnv().quadTable->emit("=", $1->name, $3->name);
         }
@@ -603,11 +643,13 @@ function_specifier
 
 declarator
         : pointer direct_declarator
-        {
+        {   
+            // finds the base type of the pointer
             SymbolType *temp = $1;
             while(temp->arrType != NULL) 
                 temp = temp->arrType;
 
+            // finds the base type of the direct declarator
             SymbolType* baseTp = $2->type, *prev = NULL;
             while(baseTp->type == TYPE_ARRAY) {
                 prev = baseTp;
@@ -616,6 +658,7 @@ declarator
 
             temp->arrType = baseTp;
 
+            // accordingly, the data type is set as a pointer to some data type or an array of pointers 
             if(prev!=NULL){
                 prev->arrType = $1;
                 $$ = $2;
@@ -630,24 +673,28 @@ declarator
 direct_declarator
         : IDENTIFIER
         {   
+            // look for the identifier within the block/scope and if present, return an error
             for(list<Symbol>::iterator it = Environment::parseEnv().STstack.top()->symbols.begin(); it != Environment::parseEnv().STstack.top()->symbols.end(); it++) {
                 if(it->name == yytext) {
                     yyerror("Variable already declared!");
                 }
             }
+            // otherwise add the symbol
             $$ = Environment::parseEnv().addSymbol(yytext);
             $$ = $$->update(new SymbolType(Environment::parseEnv().currType));
             Environment::parseEnv().currSymbol = $$;
         }
         | LPAREN declarator RPAREN                                          {$$ = $2;}
 		| direct_declarator LSQPAREN assignment_expression RSQPAREN
-        {             
+        {     
+            // handle the case when the array is initialized with a value
             SymbolType *temp = $1->type, *prev = NULL;
             while(temp->type == TYPE_ARRAY) { 
                 prev = temp;
                 temp = temp->arrType;
             }
 
+            // if the array is initialized with a value, set the size of the array
             if(prev != NULL) { 
                 prev->arrType =  new SymbolType(TYPE_ARRAY, temp, atoi($3->symbol->initial_value.c_str()));	
                 $$ = $1->update($1->type);
@@ -659,6 +706,7 @@ direct_declarator
         }
 		| direct_declarator LSQPAREN RSQPAREN
         {
+            // same as before but the initial value is kept 0 as we don't know the size
             SymbolType *temp = $1->type, *prev = NULL;
             while(temp->type == TYPE_ARRAY) { 
                 prev = temp;
@@ -679,10 +727,12 @@ direct_declarator
             Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
+                // update return symbol for non-void functions
                 Symbol* s = Environment::parseEnv().lookup("return");
                 s->update($1->type);
             }
 
+            // set nested table for function 
             $1->nestedTable = Environment::parseEnv().STstack.top();
 
             Environment::parseEnv().STstack.pop();
@@ -690,6 +740,7 @@ direct_declarator
         }
 		| direct_declarator LPAREN CT RPAREN
         { 
+            // same as previous but without the parameter list
             Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
@@ -713,8 +764,16 @@ direct_declarator
         ;
 
 pointer
-        : ASTERISK type_qualifier_list_opt              { $$ = new SymbolType(TYPE_PTR); }
-        | ASTERISK type_qualifier_list_opt pointer      { $$ = new SymbolType(TYPE_PTR, $3); }
+        : ASTERISK type_qualifier_list_opt              
+        { 
+            // new pointer type symbol is created
+            $$ = new SymbolType(TYPE_PTR); 
+        } 
+        | ASTERISK type_qualifier_list_opt pointer      
+        { 
+            // nested pointer type symbol is created
+            $$ = new SymbolType(TYPE_PTR, $3); 
+        }
         ;
 
 type_qualifier_list
@@ -803,6 +862,7 @@ labeled_statement
 compound_statement
         : LBRACE CB CT block_item_list_opt RBRACE
         {
+            // pop the symbol table for the block
             $$ = $4;
             Environment::parseEnv().STstack.pop();
         }
@@ -840,19 +900,23 @@ expression_opt
 selection_statement
         : IF LPAREN selection_expression RPAREN M statement N  %prec PSEUDO_ELSE
         { 
+            // %prec PSEUDO_ELSE is used to prevent translation conflict 
+
             $$ = new Statement();
 
             backpatch($3->truelist, $5);
 
+            // to leave the if part when expression is false
             $$->nextlist = merge($3->falselist, merge($6->nextlist, $7->nextlist));
         }
         | IF LPAREN selection_expression RPAREN M statement N ELSE M statement
         { 
             $$ = new Statement();
 
-            backpatch($3->truelist, $5);
-            backpatch($3->falselist, $9);
+            backpatch($3->truelist, $5); // go to if-part if true 
+            backpatch($3->falselist, $9); // go to else-part if false
 
+            // to leave the if-else after its done
             $$->nextlist = merge($10->nextlist, merge($6->nextlist, $7->nextlist));
         }
         | SWITCH LPAREN expression RPAREN statement                             { /*Ignore*/ }
@@ -864,6 +928,7 @@ selection_expression: expression {$1->convtoBool(); $$ = $1;}
 iteration_statement
         : WHILE M LPAREN expression RPAREN M statement
         { 
+            // similar to selection statement, with a change in go-to locations for true and false cases
             $$ = new Statement();
 
             $4->convtoBool();
@@ -875,6 +940,7 @@ iteration_statement
 
             Environment::parseEnv().quadTable->emit("goto", to_string($2));
         }
+        // similar to while 
         | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON
         { 
             $$ = new Statement();
@@ -886,7 +952,7 @@ iteration_statement
 
             $$->nextlist = $7->falselist;
         }
-
+        // similar to while
         | FOR LPAREN expression_opt SEMICOLON M expression_opt SEMICOLON M expression_opt N RPAREN M statement
         { 
             $$ = new Statement();
@@ -910,6 +976,7 @@ jump_statement
         | BREAK SEMICOLON                       { /*New statement*/}
         | RETURN expression_opt SEMICOLON
         {   
+            // emit the TAC for return statement depending on whether expression is present or not
             $$ = new Statement();
             Environment::parseEnv().quadTable->emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
         }
@@ -930,6 +997,7 @@ external_declaration
 function_definition
         : declaration_specifiers declarator declaration_list_opt CT LBRACE block_item_list_opt RBRACE
         { 
+            // set the symbol table for the function
             Environment::parseEnv().blockCount = 0;
             $2->type->type = TYPE_FUNC;
             Environment::parseEnv().STstack.pop();
