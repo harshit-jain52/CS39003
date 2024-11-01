@@ -630,7 +630,11 @@ declarator
 direct_declarator
         : IDENTIFIER
         {   
-            if($1 != NULL) yyerror("Variable already declared!");
+            for(list<Symbol>::iterator it = Environment::parseEnv().STstack.top()->symbols.begin(); it != Environment::parseEnv().STstack.top()->symbols.end(); it++) {
+                if(it->name == yytext) {
+                    yyerror("Variable already declared!");
+                }
+            }
             $$ = Environment::parseEnv().addSymbol(yytext);
             $$ = $$->update(new SymbolType(Environment::parseEnv().currType));
             Environment::parseEnv().currSymbol = $$;
