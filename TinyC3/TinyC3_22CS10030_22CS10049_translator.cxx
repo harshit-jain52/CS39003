@@ -105,9 +105,8 @@ Symbol* SymbolTable::lookup(string name){
         if(it->name == name) return &(*it);
     }
 
-    Symbol* sym = new Symbol(name);
-    symbols.push_back(*sym);
-    return &symbols.back();
+    if(parent != NULL) return parent->lookup(name);
+    return NULL;
 }
 
 // Update the symbol table before printing: calculate offsets and update nested tables recursively
@@ -236,7 +235,7 @@ void Expression::convtoInt(){
         backpatch(truelist, nextinstr());
         Environment::parseEnv().quadTable->emit("=", symbol->name, "1"); 
 
-        Environment::parseEnv().quadTable->emit("goto", to_string(nextinstr() + 2));  
+        Environment::parseEnv().quadTable->emit("goto", to_string(nextinstr() + 1));  
 
         backpatch(falselist, nextinstr());
         Environment::parseEnv().quadTable->emit("=", symbol->name, "0");
@@ -284,6 +283,18 @@ Environment::Environment(){
 Environment& Environment::parseEnv(){
     static Environment env;
     return env;
+}
+
+Symbol* Environment::lookup(string name){
+    Symbol* sym =  STstack.top()->lookup(name);
+    if(sym==NULL || name=="return") sym = addSymbol(name);
+    return sym;
+}
+
+Symbol* Environment::addSymbol(string name){
+    Symbol* sym = new Symbol(name);
+    STstack.top()->symbols.push_back(*sym);
+    return &STstack.top()->symbols.back();
 }
 
 /* -------------------- Global Functions -------------------- */
@@ -366,13 +377,19 @@ inline void printDeco(){
 /* -------------------- Main Program --------------------*/
 int main(){
 
-    // Parse the input using flex and bison
-    yyparse();
+    try{
+        // Parse the input using flex and bison
+        yyparse();
 
-    // Update and print the symbol table
-    Environment::parseEnv().STstack.top()->update();
-    Environment::parseEnv().STstack.top()->print();
+        // Update and print the symbol table
+        Environment::parseEnv().STstack.top()->update();
+        Environment::parseEnv().STstack.top()->print();
 
-    // Print the quad array
-    Environment::parseEnv().quadTable->print();
+        // Print the quad array
+        Environment::parseEnv().quadTable->print();
+    }
+    catch(const char* msg){
+        cout << msg << endl;
+    }
+
 }

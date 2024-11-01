@@ -59,6 +59,7 @@
 primary_expression
         : IDENTIFIER
         { 
+            if($1 == NULL) yyerror("Undefined variable!");
             $$ = new Expression($1);
             $$->type = Expression::NONBOOL;
         }
@@ -472,7 +473,7 @@ conditional_expression
         ;
 
 assignment_expression
-        : conditional_expression                                        {$1->convtoInt(); $$ = $1; /* Simple Assignment */}
+        : conditional_expression                                        {$$ = $1; /* Simple Assignment */}
         | unary_expression assignment_operator assignment_expression
         {   
             switch($1->type){
@@ -628,8 +629,10 @@ declarator
 
 direct_declarator
         : IDENTIFIER
-        {
-            $$ = $1->update(new SymbolType(Environment::parseEnv().currType));
+        {   
+            if($1 != NULL) yyerror("Variable already declared!");
+            $$ = Environment::parseEnv().addSymbol(yytext);
+            $$ = $$->update(new SymbolType(Environment::parseEnv().currType));
             Environment::parseEnv().currSymbol = $$;
         }
         | LPAREN declarator RPAREN                                          {$$ = $2;}
@@ -672,7 +675,7 @@ direct_declarator
             Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = Environment::parseEnv().STstack.top()->lookup("return");
+                Symbol* s = Environment::parseEnv().lookup("return");
                 s->update($1->type);
             }
 
@@ -686,7 +689,7 @@ direct_declarator
             Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = Environment::parseEnv().STstack.top()->lookup("return");
+                Symbol* s = Environment::parseEnv().lookup("return");
                 s->update($1->type);
             }
 
@@ -976,7 +979,7 @@ CT  :
 CB  : 
     {
         string name = Environment::parseEnv().STstack.top()->name + "_" + to_string(Environment::parseEnv().blockCount++);
-        Symbol *s = Environment::parseEnv().STstack.top()->lookup(name);
+        Symbol *s = Environment::parseEnv().lookup(name);
         s->nestedTable = new SymbolTable(name, Environment::parseEnv().STstack.top());
         s->type = new SymbolType(TYPE_BLOCK);
         Environment::parseEnv().currSymbol = s;
@@ -992,5 +995,5 @@ tinyC_start:
 %%
 
 void yyerror(const char* s) {
-    printf("ERROR [Line %d] : %s, unable to parse : %s\n", yylineno, s, yytext);
+    throw s;
 }

@@ -266,6 +266,8 @@ public:
     map<TYPE, string> strMap;
 
     static Environment& parseEnv();
+    Symbol* lookup(string);
+    Symbol* addSymbol(string);
 };
 
 // Global functions

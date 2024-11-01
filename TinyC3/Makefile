@@ -24,6 +24,9 @@ test: a.out
 	for i in 1 2 3 4 5; do \
 		./a.out < test_in/$(BASE)_test$$i.c > test_out/$(BASE)_quads$$i.out; \
 	done
+	for i in 1 2; do \
+		./a.out < test_in/$(BASE)_err$$i.c > test_out/$(BASE)_errquads$$i.out; \
+	done
 
 clean:
 	-rm -rf a.out *.yy.* *.o *.tab.* *.h.gch test_out/
