@@ -167,7 +167,7 @@ NEWLINE                 \n
 {COMPLEX_}		        { return COMPLEX_; }
 {IMAGINARY_}		    { return IMAGINARY_; }
 
-{IDENTIFIER}            { yylval.sym = parseEnv->STstack.top()->lookup(yytext); return IDENTIFIER; }  
+{IDENTIFIER}            { yylval.sym = Environment::parseEnv().STstack.top()->lookup(yytext); return IDENTIFIER; }  
 {FLOATING_CONSTANT}     { yylval.text = strdup(yytext); return FLOATING_CONSTANT; }
 {INTEGER_CONSTANT}      { yylval.text = strdup(yytext); return INTEGER_CONSTANT; }
 {CHAR_CONSTANT}         { yylval.text = strdup(yytext); return CHAR_CONSTANT; }

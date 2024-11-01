@@ -238,7 +238,7 @@ public:
 
 /*
 class: Environment
-*description: Defines the environment of the parser
+*description: Singleton class, defines the environment of the parser
 *attributes:
     STstack: stack<SymbolTable*> -- stack of symbol tables (current symbol table at the top)
     currSymbol: Symbol* -- current symbol
@@ -248,9 +248,12 @@ class: Environment
     sizeMap: map<TYPE, int> -- map of data types to their sizes
     strMap: map<TYPE, string> -- map of data types to their string representations
 *methods:
-    Environment() -- constructor
+    Environment() -- private constructor
+    parseEnv() -- returns the singleton instance of the class
 */
 class Environment{
+private:
+    Environment();
 public:
     stack<SymbolTable*> STstack;
     Symbol* currSymbol;
@@ -260,11 +263,8 @@ public:
     map<TYPE, int> sizeMap;
     map<TYPE, string> strMap;
 
-    Environment();
+    static Environment& parseEnv();
 };
-
-// Global variables
-extern Environment* parseEnv;
 
 // Global functions
 
@@ -294,7 +294,8 @@ int nextinstr();
 // to generate a new temporary variable
 Symbol* gentemp(TYPE, string = "-");
 
-// helper function to print the symbol table
-void print_STCols(const vector<string>&, int, char, int);
+// helper functions to print the symbol table
+void printSTCols(const vector<string>&, int = 40, char = ' ', int = 15);
+inline void printDeco();
 
 #endif

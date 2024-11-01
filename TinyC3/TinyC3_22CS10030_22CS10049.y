@@ -75,17 +75,17 @@ constant
         : INTEGER_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_INT, $1));
-            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
         | FLOATING_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_FLOAT, $1));
-            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
         | CHAR_CONSTANT
         {
             $$ = new Expression(gentemp(TYPE_CHAR, $1));
-            parseEnv->quadTable->emit("=", $$->symbol->name, $1);
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1);
         }
         ;
 
@@ -106,30 +106,30 @@ postfix_expression
             if($1->type == Array::ARRAY){
                 Symbol *tempSym = gentemp(TYPE_INT);
                 int sz = $$->childType->getSize();
-                parseEnv->quadTable->emit("*", tempSym->name, $3->symbol->name, to_string(sz));
-                parseEnv->quadTable->emit("+", $$->loca->name, $1->loca->name, tempSym->name);
+                Environment::parseEnv().quadTable->emit("*", tempSym->name, $3->symbol->name, to_string(sz));
+                Environment::parseEnv().quadTable->emit("+", $$->loca->name, $1->loca->name, tempSym->name);
             }
             else{
                 int sz = $$->childType->getSize();
-                parseEnv->quadTable->emit("*", $$->loca->name, $3->symbol->name, to_string(sz));
+                Environment::parseEnv().quadTable->emit("*", $$->loca->name, $3->symbol->name, to_string(sz));
             }
         }
         | postfix_expression LPAREN argument_expression_list_opt RPAREN
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            parseEnv->quadTable->emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
+            Environment::parseEnv().quadTable->emit("call", $$->symbol->name, $1->symbol->name, to_string($3));
         }
         | postfix_expression INC
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            parseEnv->quadTable->emit("=", $$->symbol->name, $1->symbol->name);
-            parseEnv->quadTable->emit("+", $1->symbol->name, $1->symbol->name, "1");
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1->symbol->name);
+            Environment::parseEnv().quadTable->emit("+", $1->symbol->name, $1->symbol->name, "1");
         }
         | postfix_expression DEC
         {
             $$ = new Array(gentemp($1->symbol->type->type));
-            parseEnv->quadTable->emit("=", $$->symbol->name, $1->symbol->name);
-            parseEnv->quadTable->emit("-", $1->symbol->name, $1->symbol->name, "1");
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $1->symbol->name);
+            Environment::parseEnv().quadTable->emit("-", $1->symbol->name, $1->symbol->name, "1");
         }
         | postfix_expression DOT IDENTIFIER                             { /*Ignore*/ }
         | postfix_expression ARROW IDENTIFIER                           { /*Ignore*/ }
@@ -141,12 +141,12 @@ argument_expression_list
         : assignment_expression
         { 
             $$ = 1;
-            parseEnv->quadTable->emit("param",$1->symbol->name);
+            Environment::parseEnv().quadTable->emit("param",$1->symbol->name);
         }
         | argument_expression_list COMMA assignment_expression
         {
             $$ = 1 + $1;
-            parseEnv->quadTable->emit("param",$3->symbol->name);
+            Environment::parseEnv().quadTable->emit("param",$3->symbol->name);
         }
         ;
 
@@ -162,12 +162,12 @@ unary_expression:
         | INC unary_expression
         {
             $$ = $2;
-            parseEnv->quadTable->emit("+", $2->symbol->name, $2->symbol->name, "1");
+            Environment::parseEnv().quadTable->emit("+", $2->symbol->name, $2->symbol->name, "1");
         }
         | DEC unary_expression
         {
             $$ = $2;
-            parseEnv->quadTable->emit("-", $2->symbol->name, $2->symbol->name, "1");
+            Environment::parseEnv().quadTable->emit("-", $2->symbol->name, $2->symbol->name, "1");
         }
         | unary_operator cast_expression
         {
@@ -175,29 +175,29 @@ unary_expression:
                 case AMPERSAND:
                     $$ = new Array(gentemp(TYPE_PTR));
                     $$->symbol->type->arrType = $2->symbol->type;
-                    parseEnv->quadTable->emit("= &", $$->symbol->name, $2->symbol->name);
+                    Environment::parseEnv().quadTable->emit("= &", $$->symbol->name, $2->symbol->name);
                     break;
                 case ASTERISK:
                     $$ = new Array($2->symbol);
                     $$->loca = gentemp($2->loca->type->arrType->type);
                     $$->loca->type->arrType = $2->loca->type->arrType->arrType;
                     $$->type = Array::POINTER;
-                    parseEnv->quadTable->emit("= *", $$->loca->name, $2->loca->name);
+                    Environment::parseEnv().quadTable->emit("= *", $$->loca->name, $2->loca->name);
                     break;
                 case PLUS:
                     $$ = $2;
                     break;
                 case MINUS:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    parseEnv->quadTable->emit("= -", $$->symbol->name, $2->symbol->name);
+                    Environment::parseEnv().quadTable->emit("= -", $$->symbol->name, $2->symbol->name);
                     break;
                 case TILDE:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    parseEnv->quadTable->emit("= ~", $$->symbol->name, $2->symbol->name);
+                    Environment::parseEnv().quadTable->emit("= ~", $$->symbol->name, $2->symbol->name);
                     break;
                 case NOT:
                     $$ = new Array(gentemp($2->symbol->type->type));
-                    parseEnv->quadTable->emit("= !", $$->symbol->name, $2->symbol->name);
+                    Environment::parseEnv().quadTable->emit("= !", $$->symbol->name, $2->symbol->name);
                     break;
             }
         }
@@ -216,7 +216,7 @@ unary_operator
 
 cast_expression
         : unary_expression                        {$$ = $1;}
-        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(parseEnv->currType));}
+        | LPAREN type_name RPAREN cast_expression {$$ = new Array($4->symbol->convertType(Environment::parseEnv().currType));}
         ;
 
 multiplicative_expression
@@ -226,7 +226,7 @@ multiplicative_expression
                 SymbolType *baseType = $1->symbol->type;
                 while(baseType->arrType != NULL) baseType = baseType->arrType;
                 $$ = new Expression(gentemp(baseType->type));
-                parseEnv->quadTable->emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
+                Environment::parseEnv().quadTable->emit("=[]", $$->symbol->name, $1->symbol->name, $1->loca->name);
             }
             else if($1->type == Array::POINTER){
                 $$ = new Expression($1->loca);
@@ -245,7 +245,7 @@ multiplicative_expression
 
             if($3->type == Array::ARRAY){
                 temp = gentemp(baseType->type);
-                parseEnv->quadTable->emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
+                Environment::parseEnv().quadTable->emit("=[]", temp->name, $3->symbol->name, $3->loca->name);
             } 
             else if($3->type == Array::POINTER){
                 temp = $3->loca;
@@ -257,7 +257,7 @@ multiplicative_expression
             if(typeCheck($1->symbol, temp)){
                 $$ = new Expression();
                 $$->symbol = gentemp($1->symbol->type->type);
-                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, temp->name);
+                Environment::parseEnv().quadTable->emit($2, $$->symbol->name, $1->symbol->name, temp->name);
             } 
             else{
                 yyerror("Type mismatch!");
@@ -278,7 +278,7 @@ additive_expression
         {   
             if(typeCheck($1->symbol, $3->symbol)) {
                 $$ = new Expression(gentemp($1->symbol->type->type));
-                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+                Environment::parseEnv().quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
                 yyerror("Type mismatch!");
@@ -298,7 +298,7 @@ shift_expression
         { 
             if($3->symbol->type->type == TYPE_INT) {
                 $$ = new Expression(gentemp(TYPE_INT));
-                parseEnv->quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
+                Environment::parseEnv().quadTable->emit($2, $$->symbol->name, $1->symbol->name, $3->symbol->name);
             } 
             else {
                 yyerror("<<: Type mismatch!");
@@ -321,8 +321,8 @@ relational_expression
                 $$->type = Expression::BOOL;
                 $$->truelist = makelist(nextinstr());
                 $$->falselist = makelist(nextinstr() + 1);
-                parseEnv->quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
-                parseEnv->quadTable->emit("goto", "");
+                Environment::parseEnv().quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
+                Environment::parseEnv().quadTable->emit("goto", "");
             } 
             else {
                 yyerror("Type mismatch!");
@@ -351,8 +351,8 @@ equality_expression
                 $$->truelist = makelist(nextinstr());
                 $$->falselist = makelist(nextinstr() + 1);
 
-                parseEnv->quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
-                parseEnv->quadTable->emit("goto", "");
+                Environment::parseEnv().quadTable->emit($2, "", $1->symbol->name, $3->symbol->name);
+                Environment::parseEnv().quadTable->emit("goto", "");
 
             } 
             else {
@@ -378,7 +378,7 @@ and_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            parseEnv->quadTable->emit("&", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            Environment::parseEnv().quadTable->emit("&", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -393,7 +393,7 @@ exclusive_or_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            parseEnv->quadTable->emit("^", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            Environment::parseEnv().quadTable->emit("^", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -408,7 +408,7 @@ inclusive_or_expression
             $$->type = Expression::NONBOOL;
             $$->symbol = gentemp(TYPE_INT);
 
-            parseEnv->quadTable->emit("|", $$->symbol->name, $1->symbol->name, $3->symbol->name);
+            Environment::parseEnv().quadTable->emit("|", $$->symbol->name, $1->symbol->name, $3->symbol->name);
         }
         ;
 
@@ -449,16 +449,16 @@ conditional_expression
         | logical_or_expression N QUESTION M expression N COLON M conditional_expression
         { 
             $$->symbol = gentemp($5->symbol->type->type);
-            parseEnv->quadTable->emit("=", $$->symbol->name, $9->symbol->name);
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $9->symbol->name);
 
             list<int> l = makelist(nextinstr());
-            parseEnv->quadTable->emit("goto", "");
+            Environment::parseEnv().quadTable->emit("goto", "");
 
             backpatch($6->nextlist, nextinstr());
-            parseEnv->quadTable->emit("=", $$->symbol->name, $5->symbol->name);
+            Environment::parseEnv().quadTable->emit("=", $$->symbol->name, $5->symbol->name);
 
             l = merge(l, makelist(nextinstr()));
-            parseEnv->quadTable->emit("goto", "");
+            Environment::parseEnv().quadTable->emit("goto", "");
 
             backpatch($2->nextlist, nextinstr());
 
@@ -478,15 +478,15 @@ assignment_expression
             switch($1->type){
                 case Array::ARRAY:
                     $3->symbol = $3->symbol->convertType($1->childType->type);
-                    parseEnv->quadTable->emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
+                    Environment::parseEnv().quadTable->emit("[]=", $1->symbol->name, $1->loca->name, $3->symbol->name);
                     break;
                 case Array::POINTER:
                     $3->symbol = $3->symbol->convertType($1->loca->type->type);
-                    parseEnv->quadTable->emit("*=", $1->loca->name, $3->symbol->name);
+                    Environment::parseEnv().quadTable->emit("*=", $1->loca->name, $3->symbol->name);
                     break;
                 default:
                     $3->symbol = $3->symbol->convertType($1->symbol->type->type);
-                    parseEnv->quadTable->emit("=", $1->symbol->name, $3->symbol->name);
+                    Environment::parseEnv().quadTable->emit("=", $1->symbol->name, $3->symbol->name);
                     break;
             }
             
@@ -553,7 +553,7 @@ init_declarator
         {
             $1->setinit($3);
             $3 = $3->convertType($1->type->type);
-            parseEnv->quadTable->emit("=", $1->name, $3->name);
+            Environment::parseEnv().quadTable->emit("=", $1->name, $3->name);
         }
         ;
 
@@ -565,10 +565,10 @@ storage_class_specifier
         ;
 
 type_specifier
-        : VOID          { parseEnv->currType = TYPE_VOID; }
-        | CHAR          { parseEnv->currType = TYPE_CHAR; }
-        | INT           { parseEnv->currType = TYPE_INT; }
-        | FLOAT         { parseEnv->currType = TYPE_FLOAT; }
+        : VOID          { Environment::parseEnv().currType = TYPE_VOID; }
+        | CHAR          { Environment::parseEnv().currType = TYPE_CHAR; }
+        | INT           { Environment::parseEnv().currType = TYPE_INT; }
+        | FLOAT         { Environment::parseEnv().currType = TYPE_FLOAT; }
         | LONG          {  /*Ignore*/ }
         | SHORT         {  /*Ignore*/ }
         | DOUBLE        {  /*Ignore*/ }
@@ -629,8 +629,8 @@ declarator
 direct_declarator
         : IDENTIFIER
         {
-            $$ = $1->update(new SymbolType(parseEnv->currType));
-            parseEnv->currSymbol = $$;
+            $$ = $1->update(new SymbolType(Environment::parseEnv().currType));
+            Environment::parseEnv().currSymbol = $$;
         }
         | LPAREN declarator RPAREN                                          {$$ = $2;}
 		| direct_declarator LSQPAREN assignment_expression RSQPAREN
@@ -669,31 +669,31 @@ direct_declarator
         }
         | direct_declarator LPAREN CT parameter_type_list RPAREN
         { 
-            parseEnv->STstack.top()->name = $1->name;
+            Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = parseEnv->STstack.top()->lookup("return");
+                Symbol* s = Environment::parseEnv().STstack.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = parseEnv->STstack.top();
+            $1->nestedTable = Environment::parseEnv().STstack.top();
 
-            parseEnv->STstack.pop();
-            parseEnv->currSymbol = $$;
+            Environment::parseEnv().STstack.pop();
+            Environment::parseEnv().currSymbol = $$;
         }
 		| direct_declarator LPAREN CT RPAREN
         { 
-            parseEnv->STstack.top()->name = $1->name;
+            Environment::parseEnv().STstack.top()->name = $1->name;
 
             if($1->type->type != TYPE_VOID) {
-                Symbol* s = parseEnv->STstack.top()->lookup("return");
+                Symbol* s = Environment::parseEnv().STstack.top()->lookup("return");
                 s->update($1->type);
             }
 
-            $1->nestedTable = parseEnv->STstack.top();
+            $1->nestedTable = Environment::parseEnv().STstack.top();
 
-            parseEnv->STstack.pop();
-            parseEnv->currSymbol = $$;
+            Environment::parseEnv().STstack.pop();
+            Environment::parseEnv().currSymbol = $$;
         }
         | direct_declarator LSQPAREN type_qualifier_list assignment_expression RSQPAREN 	            { /*Ignore*/ }
 		| direct_declarator LSQPAREN type_qualifier_list RSQPAREN        	                            { /*Ignore*/ }
@@ -797,7 +797,7 @@ compound_statement
         : LBRACE CB CT block_item_list_opt RBRACE
         {
             $$ = $4;
-            parseEnv->STstack.pop();
+            Environment::parseEnv().STstack.pop();
         }
         ;
 
@@ -866,7 +866,7 @@ iteration_statement
 
             $$->nextlist = $4->falselist;
 
-            parseEnv->quadTable->emit("goto", to_string($2));
+            Environment::parseEnv().quadTable->emit("goto", to_string($2));
         }
         | DO M statement M WHILE LPAREN expression RPAREN SEMICOLON
         { 
@@ -890,7 +890,7 @@ iteration_statement
             backpatch($10->nextlist, $5);
             backpatch($13->nextlist, $8);
 
-            parseEnv->quadTable->emit("goto", to_string($8));
+            Environment::parseEnv().quadTable->emit("goto", to_string($8));
 
             $$->nextlist = $6->falselist;
         }
@@ -904,7 +904,7 @@ jump_statement
         | RETURN expression_opt SEMICOLON
         {   
             $$ = new Statement();
-            parseEnv->quadTable->emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
+            Environment::parseEnv().quadTable->emit("return",($2->symbol == NULL) ? "" : $2->symbol->name);
         }
         ;
 
@@ -923,9 +923,9 @@ external_declaration
 function_definition
         : declaration_specifiers declarator declaration_list_opt CT LBRACE block_item_list_opt RBRACE
         { 
-            parseEnv->blockCount = 0;
+            Environment::parseEnv().blockCount = 0;
             $2->type->type = TYPE_FUNC;
-            parseEnv->STstack.pop();
+            Environment::parseEnv().STstack.pop();
         }
         ;
 
@@ -952,22 +952,22 @@ N   :
     {
         $$ = new Statement();
         $$->nextlist = makelist(nextinstr());
-        parseEnv->quadTable->emit("goto", "");
+        Environment::parseEnv().quadTable->emit("goto", "");
     }
     ;
 
 // to switch symbol tables for function definitions
 CT  : 
     {
-        if(parseEnv->currSymbol->nestedTable == NULL) {
+        if(Environment::parseEnv().currSymbol->nestedTable == NULL) {
             SymbolTable *st = new SymbolTable("");
-            st->parent = parseEnv->STstack.top();
-            parseEnv->STstack.push(st);
+            st->parent = Environment::parseEnv().STstack.top();
+            Environment::parseEnv().STstack.push(st);
         }
         else {
-            parseEnv->currSymbol->nestedTable->parent = parseEnv->STstack.top();
-            parseEnv->STstack.push(parseEnv->currSymbol->nestedTable);
-            parseEnv->quadTable->emit("label",parseEnv->STstack.top()->name);
+            Environment::parseEnv().currSymbol->nestedTable->parent = Environment::parseEnv().STstack.top();
+            Environment::parseEnv().STstack.push(Environment::parseEnv().currSymbol->nestedTable);
+            Environment::parseEnv().quadTable->emit("label",Environment::parseEnv().STstack.top()->name);
         }
     }
     ;
@@ -975,11 +975,11 @@ CT  :
 // to switch symbol tables for block items (if,else,for,while,do)
 CB  : 
     {
-        string name = parseEnv->STstack.top()->name + "_" + to_string(parseEnv->blockCount++);
-        Symbol *s = parseEnv->STstack.top()->lookup(name);
-        s->nestedTable = new SymbolTable(name, parseEnv->STstack.top());
+        string name = Environment::parseEnv().STstack.top()->name + "_" + to_string(Environment::parseEnv().blockCount++);
+        Symbol *s = Environment::parseEnv().STstack.top()->lookup(name);
+        s->nestedTable = new SymbolTable(name, Environment::parseEnv().STstack.top());
         s->type = new SymbolType(TYPE_BLOCK);
-        parseEnv->currSymbol = s;
+        Environment::parseEnv().currSymbol = s;
     } 
     ;
 

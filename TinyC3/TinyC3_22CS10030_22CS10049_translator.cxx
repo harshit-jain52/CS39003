@@ -1,20 +1,18 @@
 #include "TinyC3_22CS10030_22CS10049_translator.h"
 
-Environment* parseEnv;
-
 /* SymbolType */
 
 SymbolType::SymbolType(TYPE type_, SymbolType* arrType_, int width_): type(type_), width(width_), arrType(arrType_) {}
 
 int SymbolType::getSize(){
     if(type == TYPE_ARRAY) return width*(arrType->getSize());
-    return parseEnv->sizeMap[type];
+    return Environment::parseEnv().sizeMap[type];
 }
 
 string SymbolType::getType(){
     if(type == TYPE_ARRAY) return "array(" + to_string(width) + ", " + arrType->getType() + ")";
     if(type == TYPE_PTR) return "ptr(" + arrType->getType() + ")";
-    return parseEnv->strMap[type];
+    return Environment::parseEnv().strMap[type];
 }
 
 /* Symbol */
@@ -33,12 +31,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_INT){
         if(retType == TYPE_FLOAT){
             Symbol* temp = gentemp(TYPE_FLOAT);
-            parseEnv->quadTable->emit("=", temp->name, "inttofloat(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "inttofloat(" + name + ")");
             return temp;
         }
         if(retType == TYPE_CHAR){
             Symbol* temp = gentemp(TYPE_CHAR);
-            parseEnv->quadTable->emit("=", temp->name, "inttochar(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "inttochar(" + name + ")");
             return temp;
         }
         return this;
@@ -47,12 +45,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_FLOAT){
         if(retType == TYPE_INT){
             Symbol* temp = gentemp(TYPE_INT);
-            parseEnv->quadTable->emit("=", temp->name, "floattoint(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "floattoint(" + name + ")");
             return temp;
         }
         if(retType == TYPE_CHAR){
             Symbol* temp = gentemp(TYPE_CHAR);
-            parseEnv->quadTable->emit("=", temp->name, "floattochar(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "floattochar(" + name + ")");
             return temp;
         }
         return this;
@@ -61,12 +59,12 @@ Symbol* Symbol::convertType(TYPE retType){
     if(type->type == TYPE_CHAR){
         if(retType == TYPE_INT){
             Symbol* temp = gentemp(TYPE_INT);
-            parseEnv->quadTable->emit("=", temp->name, "chartoint(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "chartoint(" + name + ")");
             return temp;
         }
         if(retType == TYPE_FLOAT){
             Symbol* temp = gentemp(TYPE_FLOAT);
-            parseEnv->quadTable->emit("=", temp->name, "chartofloat(" + name + ")");
+            Environment::parseEnv().quadTable->emit("=", temp->name, "chartofloat(" + name + ")");
             return temp;
         }
         return this;
@@ -88,7 +86,7 @@ void Symbol::setinit(Symbol* rhs){
 SymbolTable::SymbolTable(string name_, SymbolTable* parent_): name(name_), parent(parent_), count(0) {}
 
 Symbol* SymbolTable::lookup(string name){
-    for(auto it = symbols.begin(); it != symbols.end(); it++){
+    for(list<Symbol>::iterator it = symbols.begin(); it != symbols.end(); it++){
         if(it->name == name) return &(*it);
     }
 
@@ -101,49 +99,37 @@ void SymbolTable::update(){
     int offset=0;
     vector<SymbolTable*> nestedTables;
 
-    for(auto it = symbols.begin(); it != symbols.end(); it++){
+    for(list<Symbol>::iterator it = symbols.begin(); it != symbols.end(); it++){
         it->offset = offset;
         offset += it->size;
 
         if(it->nestedTable) nestedTables.push_back(it->nestedTable);
     }
 
-    for(auto it = nestedTables.begin(); it != nestedTables.end(); it++){
+    for(vector<SymbolTable*>::iterator it = nestedTables.begin(); it != nestedTables.end(); it++){
         (*it)->update();
     }
 }
 
-void print_STCols(const vector<string>& names, int nameW = 40, char sep = ' ', int numW = 15) {
-    for(int i=0; i<names.size(); i++){
-        if(i==3 || i==4) 
-            cout << left << setw(numW) << setfill(sep) << names[i];
-        else 
-            cout << left << setw(nameW) << setfill(sep) << names[i];
-    }
-    cout << endl;
-}
-
 void SymbolTable::print(){
-    cout << setfill('-') << setw(240) << "-" << endl;
-
+    printDeco();
     cout << "Symbol Table: " << name << "\tParent: " << (parent==NULL?"NULL":parent->name) << endl;
 
-    cout << setfill('-') << setw(240) << "-" << endl;
-
-    print_STCols({"Name", "Type", "Initial Value", "Size", "Offset", "Nested Table"});
+    printDeco();
+    printSTCols({"Name", "Type", "Initial Value", "Size", "Offset", "Nested Table"});
 
     vector<SymbolTable*> nestedTables;
 
-    for(auto it = symbols.begin(); it != symbols.end(); it++){
+    for(list<Symbol>::iterator it = symbols.begin(); it != symbols.end(); it++){
         const vector<string> symbols_values = {it->name, it->type->getType(), it->initial_value, to_string(it->size), to_string(it->offset), (it->nestedTable==NULL?"NULL":it->nestedTable->name)};
-        print_STCols(symbols_values);
+        printSTCols(symbols_values);
         if(it->nestedTable) nestedTables.push_back(it->nestedTable);
     }
     
-    cout << setfill('-') << setw(240) << "-" << endl;
+    printDeco();
     cout << endl;
 
-    for(auto it = nestedTables.begin(); it != nestedTables.end(); it++){
+    for(vector<SymbolTable*>::iterator it = nestedTables.begin(); it != nestedTables.end(); it++){
         (*it)->print();
     }
 }
@@ -175,14 +161,8 @@ void Quadruple::print(){
     else if(op == "[]="){
         cout << res << "[" << arg1 << "]" << " = " << arg2 << endl;
     }
-    else if(op == "goto"){
-        cout << "goto " << res << endl;
-    }
-    else if(op == "return"){
-        cout << "return " << res << endl;
-    }
-    else if(op == "param"){
-        cout << "param " << res << endl;
+    else if(op == "goto" || op == "param" || op == "return"){
+        cout << op << " " << res << endl;
     }
     else if(op == "call"){
         cout << res << " = call " << arg1 << ", " << arg2 << endl;
@@ -221,22 +201,19 @@ void Expression::convtoInt(){
         symbol = gentemp(TYPE_INT);
 
         backpatch(truelist, nextinstr());
-        parseEnv->quadTable->emit("=", symbol->name, "1"); 
+        Environment::parseEnv().quadTable->emit("=", symbol->name, "1"); 
 
-        parseEnv->quadTable->emit("goto", to_string(nextinstr() + 2));  
+        Environment::parseEnv().quadTable->emit("goto", to_string(nextinstr() + 2));  
 
         backpatch(falselist, nextinstr());
-        parseEnv->quadTable->emit("=", symbol->name, "0");
+        Environment::parseEnv().quadTable->emit("=", symbol->name, "0");
     }
 }
 
 void Expression::convtoBool(){
     if(type == Expression::NONBOOL){
         falselist = makelist(nextinstr());
-        parseEnv->quadTable->emit("ff", "", symbol->name);
-
-        // truelist = makelist(nextinstr());
-        // emit("goto", "");
+        Environment::parseEnv().quadTable->emit("ff", "", symbol->name);
     }
 }
 
@@ -267,6 +244,11 @@ Environment::Environment(){
     };
 }
 
+Environment& Environment::parseEnv(){
+    static Environment env;
+    return env;
+}
+
 /* Global Functions */
 
 void QuadTable::emit(string op, string res, string arg1, string arg2){
@@ -288,8 +270,8 @@ list<int> merge(list<int> a, list<int> b){
 }
 
 void backpatch(list<int> a, int addr){
-    for(auto it = a.begin(); it != a.end(); it++){
-        parseEnv->quadTable->quads[*it - 1]->res = to_string(addr);
+    for(list<int>::iterator it = a.begin(); it != a.end(); it++){
+        Environment::parseEnv().quadTable->quads[*it - 1]->res = to_string(addr);
     }
 }
 
@@ -318,23 +300,35 @@ bool typeCheck(SymbolType* a, SymbolType* b){
 }
 
 int nextinstr(){
-    return parseEnv->quadTable->quads.size() + 1;
+    return Environment::parseEnv().quadTable->quads.size() + 1;
 }
 
 Symbol* gentemp(TYPE type, string val){
-    Symbol *temp = new Symbol("t" + to_string(parseEnv->STstack.top()->count++), type, val);
-    parseEnv->STstack.top()->symbols.push_back(*temp);
-    return &parseEnv->STstack.top()->symbols.back();
+    Symbol *temp = new Symbol("t" + to_string(Environment::parseEnv().STstack.top()->count++), type, val);
+    Environment::parseEnv().STstack.top()->symbols.push_back(*temp);
+    return &Environment::parseEnv().STstack.top()->symbols.back();
 }
 
+void printSTCols(const vector<string>& names, int nameW, char sep, int numW) {
+    for(int i=0; i<names.size(); i++){
+        if(i==3 || i==4) 
+            cout << left << setw(numW) << setfill(sep) << names[i];
+        else 
+            cout << left << setw(nameW) << setfill(sep) << names[i];
+    }
+    cout << endl;
+}
+
+inline void printDeco(){
+    cout << setfill('-') << setw(240) << "-" << endl;
+}
 
 int main(){
-    parseEnv = new Environment();
 
     yyparse();
 
-    parseEnv->STstack.top()->update();
-    parseEnv->STstack.top()->print();
+    Environment::parseEnv().STstack.top()->update();
+    Environment::parseEnv().STstack.top()->print();
 
-    parseEnv->quadTable->print();
+    Environment::parseEnv().quadTable->print();
 }
