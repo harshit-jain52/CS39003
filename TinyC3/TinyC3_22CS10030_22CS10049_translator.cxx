@@ -99,7 +99,7 @@ void Symbol::print(){
 // Default Constructor
 SymbolTable::SymbolTable(string name_, SymbolTable* parent_): name(name_), parent(parent_), count(0) {}
 
-// Return the pointer to a given symbol in the symbol table, add it if not found
+// Recursively find a symbol and return the pointer to it, return NULL if not found
 Symbol* SymbolTable::lookup(string name){
     for(list<Symbol>::iterator it = symbols.begin(); it != symbols.end(); it++){
         if(it->name == name) return &(*it);
@@ -285,12 +285,14 @@ Environment& Environment::parseEnv(){
     return env;
 }
 
+// Return the pointer to a given symbol in the environment, add it if not found
 Symbol* Environment::lookup(string name){
     Symbol* sym =  STstack.top()->lookup(name);
     if(sym==NULL || name=="return") sym = addSymbol(name);
     return sym;
 }
 
+// Add a symbol in the current symbol table
 Symbol* Environment::addSymbol(string name){
     Symbol* sym = new Symbol(name);
     STstack.top()->symbols.push_back(*sym);

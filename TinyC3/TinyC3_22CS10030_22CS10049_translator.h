@@ -110,7 +110,7 @@ class: SymbolTable
     parent: SymbolTable* -- parent symbol table (NULL if it is the global symbol table)
 *methods:
     SymbolTable(string, SymbolTable*) -- constructor
-    lookup(string) -- looks up a symbol in the symbol table, adds it if not found
+    lookup(string) -- search for a symbol in the symbol table
     update() -- updates the symbol table
     print() -- prints the symbol table
 */
@@ -252,6 +252,8 @@ class: Environment
 *methods:
     Environment() -- private constructor
     parseEnv() -- returns the singleton instance of the class
+    lookup() -- search for a symbol in the environment
+    addSymbol() -- add a symbol in current symbol table
 */
 class Environment{
 private:
