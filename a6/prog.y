@@ -36,12 +36,11 @@
     } descriptor;
 
     typedef struct reg_{
-        bool free;
         int score;
         struct descriptor_* desc;
     } reg;
 
-
+    
     void addSym(char*);
     struct sym_* findSym(char*);
     void emit(int, char*, char*, char*, char*);

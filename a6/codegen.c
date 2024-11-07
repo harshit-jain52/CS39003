@@ -146,7 +146,6 @@ void freeDesc(descriptor* desc, int regno){
 }
 
 void freeReg(int regno){
-    RB[regno].free = true;
     RB[regno].score = 0;
     freeDesc(RB[regno].desc, regno);
     RB[regno].desc = NULL;
@@ -170,7 +169,6 @@ void loadReg(int regno, sym* S){
 }
 
 void allocateReg(int regno, sym* S){
-    RB[regno].free = false;
     addDesc(regno, S);
     RB[regno].score = 1;
 }
@@ -184,7 +182,7 @@ int getReg(char* name, bool lhs){
     
     // 2. check if register is free
     for(int i=0;i<RSIZE;i++){
-        if(RB[i].free){
+        if(RB[i].desc==NULL){
             loadReg(i, S);
             if(!lhs && name[0]!='$') printf("LD R%d %s\n", i+1, name);
             return i;
@@ -204,7 +202,6 @@ int getReg(char* name, bool lhs){
             if(!lhs && name[0]!='$') printf("LD R%d %s\n", i+1, name);
             return i;
         }
-
     }
 }
 
@@ -221,6 +218,20 @@ void addDesc(int regno, sym* S){
     RB[regno].desc = d;
 }
 
+void removeDesc(int regno, sym* S){
+    descriptor* mover = RB[regno].desc;
+    descriptor* prev = NULL;
+    while(mover){
+        if(mover->symbol==S){
+            if(prev==NULL) RB[regno].desc = mover->next;
+            else prev->next = mover->next;
+            free(mover);
+            return;
+        }
+        prev = mover;
+        mover = mover->next;
+    }
+}
 
 void ICtoTC(){
     quadArray* mover = QA;
@@ -244,8 +255,9 @@ void ICtoTC(){
                         // A is a variable or temporary
                         int rega = getReg(mover->q->arg1,false);
                         sym* S = findSym(mover->q->res);
-                        if(S->regno!=-1) freeReg(S->regno);
+                        if(S->regno!=-1) removeDesc(S->regno, S);
                         S->regno = rega;
+                        RB[rega].score++;
                         S->stored = false;
                         addDesc(rega, S);
                     }
@@ -268,7 +280,7 @@ void ICtoTC(){
                         case '-': sprintf(prnop, "SUB"); break;
                         case '*': sprintf(prnop, "MUL"); break;
                         case '/': sprintf(prnop, "DIV"); break;
-                        case '%': sprintf(prnop, "MOD"); break;
+                        case '%': sprintf(prnop, "REM"); break;
                     }
                     
                     printf("%s R%d %s %s\n", prnop, regt+1, prna, prnb);
