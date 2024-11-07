@@ -3,7 +3,7 @@
 
 // char* addTemp(){
 //     char* tmp = (char*)malloc(10*sizeof(char));
-//     sprintf(tmp,"$%d",++tmpno);
+//     sfprintf(fp, tmp,"$%d",++tmpno);
 //     addSym(tmp);
 //     return tmp;
 // }
@@ -28,7 +28,7 @@
 // }
 
 void emit(int type, char* op, char* arg1, char* arg2, char* res){
-    // printf("\t%d\t:\t",++instr);
+    // fprintf(fp, "\t%d\t:\t",++instr);
     instr++;
     quadArray* arr = (quadArray*)malloc(sizeof(quadArray));
     arr->q = (quad*)malloc(sizeof(quad));
@@ -64,8 +64,8 @@ void emit(int type, char* op, char* arg1, char* arg2, char* res){
 void backpatch(int where, int label){
     quadArray* mover = QA;
     int ins = 1;
-    // printf("\n%d\t%d",where,label);
-    // printf("\n%d\n",size());
+    // fprintf(fp, "\n%d\t%d",where,label);
+    // fprintf(fp, "\n%d\n",size());
 
     while(mover){
         if(ins==where){
@@ -78,28 +78,52 @@ void backpatch(int where, int label){
 }
 
 void printQuads(){
+    identifyLeaders();
     quadArray* mover = QA;
-    int ins = 0;
+    int ins = 0, block=0;
 
+    FILE* fp = fopen("ic.txt","w");
     while(mover){
-        printf("\t%d\t: ",++ins);
+        ins++;
+        if(leaders[ins]) fprintf(fp, "\nBlock %d\n",++block);
+        fprintf(fp, "\t%d\t: ",ins);
         switch(mover->q->type){
             case EQ:
-                if(mover->q->op==NULL) printf("%s = %s\n", mover->q->res, mover->q->arg1);
-                else printf("%s = %s %s %s\n", mover->q->res, mover->q->arg1, mover->q->op, mover->q->arg2);
+                if(mover->q->op==NULL) fprintf(fp, "%s = %s\n", mover->q->res, mover->q->arg1);
+                else fprintf(fp, "%s = %s %s %s\n", mover->q->res, mover->q->arg1, mover->q->op, mover->q->arg2);
                 break;
             case WHEN:
-                printf("iffalse (%s %s %s) goto %d\n",mover->q->arg1,mover->q->op,mover->q->arg2,mover->q->label);
+                fprintf(fp, "iffalse (%s %s %s) goto %d\n",mover->q->arg1,mover->q->op,mover->q->arg2,mover->q->label);
                 break;
             case WHILE:
-                printf("goto %d\n", mover->q->label);
+                fprintf(fp, "goto %d\n", mover->q->label);
                 break;
         }
 
         mover = mover->next;
     }
 
-    printf("\t%d\t:\t",++instr);
+    fprintf(fp, "\n\t%d\t:\t",instr);
+}
+
+void identifyLeaders(){
+    quadArray* mover = QA;
+    leaders = (bool*)calloc(instr+1, sizeof(bool));
+
+    leaders[1] = true;
+    int ins = 1;
+
+    while(mover){
+        switch(mover->q->type){
+            case WHEN:
+            case WHILE:
+                leaders[ins+1]=true;
+                leaders[mover->q->label]=true;
+                break;
+        }
+        mover = mover->next;
+        ins++;
+    }
 }
 
 int main(){

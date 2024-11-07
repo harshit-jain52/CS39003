@@ -14,27 +14,24 @@
         struct quadArray_* next;
     } quadArray;
 
-    typedef struct boolExp_{
-        char *arg1, *arg2, *op;
-    } boolExp;
-
     extern int yylex();
     extern int yylineno;
     void yyerror ( char * );
-    void printInstrNum();
+
     void emit(int, char*, char*, char*, char*);
     void backpatch(int, int);
-
-
+    void printQuads();
+    void identifyLeaders();
+    
     int tmpno=0;
     int instr=0;
     struct quadArray_* QA = NULL;
+    bool* leaders = NULL;
     
 %}
 
 %union {
     char* text;
-    struct boolExp_* boole;
     int num;
 }
 
@@ -42,13 +39,17 @@
 %token <text> IDEN NUMB
 %token SET WHEN LOOP WHILE
 
-%type list stmt asgn cond loop
-%type <text> atom oper expr reln
-%type <boole> bool
+%type list stmt asgn cond loop program
+%type <text> atom oper expr reln bool
 %type <num> M
-%start list
+%start program
 
 %%
+
+program
+    : list  {instr++;}
+    ;
+
 list
     : stmt
     | stmt list
@@ -61,19 +62,25 @@ stmt
     ;
 
 asgn
-    : '(' SET IDEN atom ')'         {emit(EQ,NULL,$4,NULL,$3);}
+    : '(' SET IDEN atom ')'
+    {
+        emit(EQ,NULL,$4,NULL,$3);
+    }
     ;
 
 cond
-    : '(' WHEN bool {emit(WHEN,$3->op,$3->arg1,$3->arg2,NULL);} M list ')' {backpatch($5,instr+1);}
+    : '(' WHEN bool M list ')'
+    {
+        backpatch($4,instr+1);
+    }
     ;
 
 loop
-    : '(' LOOP WHILE bool {emit(WHEN,$4->op,$4->arg1,$4->arg2,NULL);} M list ')'
+    : '(' LOOP WHILE bool M list ')'
     {
         emit(WHILE,NULL,NULL,NULL,NULL);
-        backpatch($6,instr+1);
-        backpatch(instr,$6);
+        backpatch($5,instr+1);
+        backpatch(instr,$5);
     }
     ;
 
@@ -89,10 +96,7 @@ expr
 bool
     : '(' reln atom atom ')'
     {
-        $$ = (struct boolExp_*)malloc(sizeof(struct boolExp_));
-        $$->op = strdup($2);
-        $$->arg1 = strdup($3);
-        $$->arg2 = strdup($4);
+        emit(WHEN,$2,$3,$4,NULL);
     }
     ;
 
@@ -119,7 +123,7 @@ reln
     | GE    {$$ = strdup(">=");}
     ;
 
-M   : {$$ = instr;}
+M   :   {$$ = instr;}
     ;
 
 %%
