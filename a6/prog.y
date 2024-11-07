@@ -3,7 +3,16 @@
     #include <stdlib.h>
     #include <string.h>
     #include <stdbool.h>
+    #include <ctype.h>
 
+    #ifndef RSIZE
+    #define RSIZE 5
+    #endif
+
+    extern int yylex();
+    extern int yylineno;
+    void yyerror ( char * );
+    
     typedef struct quad_{
         int type, label;
         char *op, *arg1, *arg2, *res;
@@ -14,19 +23,46 @@
         struct quadArray_* next;
     } quadArray;
 
-    extern int yylex();
-    extern int yylineno;
-    void yyerror ( char * );
+    typedef struct sym_{
+        char* id;
+        struct sym_* next;
+        int regno;
+        bool stored;
+    } sym;
 
+    typedef struct descriptor_{
+        struct sym_* symbol;
+        struct descriptor_* next;
+    } descriptor;
+
+    typedef struct reg_{
+        bool free;
+        int score;
+        struct descriptor_* desc;
+    } reg;
+
+
+    void addSym(char*);
+    struct sym_* findSym(char*);
     void emit(int, char*, char*, char*, char*);
     void backpatch(int, int);
-    void printQuads();
+    void ICGen();
     void identifyLeaders();
-    
+
+    void freeAllRegs();
+    void freeReg(int);
+    void freeDesc(struct descriptor_*, int);
+    void allocateReg(int, struct sym_*);
+    void addDesc(int, struct sym_*);
+
+    void ICtoTC();
+
     int tmpno=0;
     int instr=0;
+    struct sym_* ST = NULL;
     struct quadArray_* QA = NULL;
     bool* leaders = NULL;
+    struct reg_* RB = NULL;
     
 %}
 
@@ -63,7 +99,8 @@ stmt
 
 asgn
     : '(' SET IDEN atom ')'
-    {
+    {   
+        addSym($3);
         emit(EQ,NULL,$4,NULL,$3);
     }
     ;
@@ -89,6 +126,7 @@ expr
     {
         $$ = (char*)malloc(10*sizeof(char));
         sprintf($$,"$%d",++tmpno);
+        addSym($$);
         emit(EQ, $2, $3, $4, $$);
     }
     ;
@@ -101,7 +139,7 @@ bool
     ;
 
 atom
-    : IDEN
+    : IDEN  {if(findSym($1)==NULL) yyerror("Error: Undefined variable\n");}
     | NUMB
     | expr
     ;

@@ -4,7 +4,7 @@ all:
 	gcc -o icgen codegen.c
 
 run: all
-	./icgen < sample.txt
+	./icgen < sample.txt > tc.txt
 
 clean:
-	-rm -f *.tab.* *.yy.c icgen ic.txt
+	-rm -f *.tab.* *.yy.c icgen ic.txt tc.txt
