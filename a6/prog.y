@@ -55,12 +55,19 @@
     void addDesc(int, struct sym_*);
 
     void ICtoTC();
+    void emitTarget(int, char*, char*, char*, char*, int);
+    void TCGen();
+    void identifyTargetLeaders();
 
     int tmpno=0;
     int instr=0;
+    int targetinstr=0;
     struct sym_* ST = NULL;
     struct quadArray_* QA = NULL;
+    struct quadArray_* TQA = NULL;
     bool* leaders = NULL;
+    int* leaderMap = NULL;
+    bool* targetLeaders = NULL;
     struct reg_* RB = NULL;
     
 %}
@@ -73,6 +80,7 @@
 %token '+' '-' '*' '/' '%' EQ NE LT GT LE GE
 %token <text> IDEN NUMB
 %token SET WHEN LOOP WHILE
+%token LDST OP JCOND JUMP
 
 %type list stmt asgn cond loop program
 %type <text> atom oper expr reln bool

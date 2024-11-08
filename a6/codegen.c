@@ -138,7 +138,11 @@ void freeDesc(descriptor* desc, int regno){
     if(desc==NULL) return;
     desc->symbol->regno = -1;
     if(!desc->symbol->stored){
-        if(desc->symbol->id[0]!='$') printf("ST %s R%d\n", desc->symbol->id, regno+1);
+        if(desc->symbol->id[0]!='$'){
+            char prnt[20];
+            sprintf(prnt, "R%d", regno+1);
+            emitTarget(LDST, "ST", desc->symbol->id, prnt, NULL, -1);
+        }
         desc->symbol->stored = true;
     }
     freeDesc(desc->next, regno);
@@ -174,7 +178,7 @@ void allocateReg(int regno, sym* S){
 }
 
 int getReg(char* name, bool lhs){
-    if(isdigit(name[0])) return -1;
+    if(isdigit(name[0]) || name[0]=='-') return -1;
 
     // 1. check if symbol is already in a register
     sym* S = findSym(name);
@@ -184,7 +188,11 @@ int getReg(char* name, bool lhs){
     for(int i=0;i<RSIZE;i++){
         if(RB[i].desc==NULL){
             loadReg(i, S);
-            if(!lhs && name[0]!='$') printf("LD R%d %s\n", i+1, name);
+            if(!lhs && name[0]!='$'){
+                char prnt[20];
+                sprintf(prnt, "R%d", i+1);
+                emitTarget(LDST, "LD", prnt, name, NULL, -1);
+            }
             return i;
         }
     }
@@ -199,7 +207,11 @@ int getReg(char* name, bool lhs){
         }
         if(dead){
             loadReg(i, S);
-            if(!lhs && name[0]!='$') printf("LD R%d %s\n", i+1, name);
+            if(!lhs && name[0]!='$'){
+                char prnt[20];
+                sprintf(prnt, "R%d", i+1);
+                emitTarget(LDST, "LD", prnt, name, NULL, -1);
+            }
             return i;
         }
     }
@@ -233,23 +245,48 @@ void removeDesc(int regno, sym* S){
     }
 }
 
+void emitTarget(int type, char* op, char* arg1, char* arg2, char* res, int label){
+    targetinstr++;
+    quadArray* arr = (quadArray*)malloc(sizeof(quadArray));
+    arr->q = (quad*)malloc(sizeof(quad));
+
+    arr->q->type=type;
+    arr->q->label=label;
+    arr->q->op=(op==NULL)?NULL:strdup(op);
+    arr->q->arg1=(arg1==NULL)?NULL:strdup(arg1);
+    arr->q->arg2=(arg2==NULL)?NULL:strdup(arg2);
+    arr->q->res=(res==NULL)?NULL:strdup(res);
+    arr->next = NULL;
+
+    quadArray* mover=TQA;
+    if(mover==NULL){
+        TQA = arr;
+    }
+    else{
+        while(mover->next != NULL) mover = mover->next;
+        mover->next=arr;
+    }
+}
+
 void ICtoTC(){
     quadArray* mover = QA;
     int ins = 1;
-    int block = 0;
+    leaderMap = (int*)malloc((instr+1)*sizeof(int));
     while(mover){
         if(leaders[ins]){
             freeAllRegs();
-            printf("\nBlock %d\n",++block);
+            leaderMap[ins] = targetinstr+1;
         }
         switch(mover->q->type){
             case EQ:
                 // Set operation T = A
                 if(mover->q->op==NULL){
-                    if(isdigit(mover->q->arg1[0])){
+                    if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-'){
                         // A is a constant
                         int regt = getReg(mover->q->res,true);
-                        printf("LDI R%d %s\n", regt+1, mover->q->arg1);
+                        char prnt[20];
+                        sprintf(prnt, "R%d", regt+1);
+                        emitTarget(LDST, "LDI", prnt, mover->q->arg1, NULL, -1);
                     }    
                     else{
                         // A is a variable or temporary
@@ -270,10 +307,10 @@ void ICtoTC(){
                     sym* S = findSym(mover->q->res);
                     S->stored = false;
                     
-                    char prna[20], prnb[20], prnop[10];
-                    if(isdigit(mover->q->arg1[0])) sprintf(prna, "%s", mover->q->arg1);
+                    char prna[20], prnb[20], prnt[20], prnop[10];
+                    if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-') sprintf(prna, "%s", mover->q->arg1);
                     else sprintf(prna, "R%d", rega+1);
-                    if(isdigit(mover->q->arg2[0])) sprintf(prnb, "%s", mover->q->arg2);
+                    if(isdigit(mover->q->arg2[0]) || mover->q->arg2[0]=='-') sprintf(prnb, "%s", mover->q->arg2);
                     else sprintf(prnb, "R%d", regb+1);
                     switch(mover->q->op[0]){
                         case '+': sprintf(prnop, "ADD"); break;
@@ -282,8 +319,9 @@ void ICtoTC(){
                         case '/': sprintf(prnop, "DIV"); break;
                         case '%': sprintf(prnop, "REM"); break;
                     }
+                    sprintf(prnt, "R%d", regt+1);
                     
-                    printf("%s R%d %s %s\n", prnop, regt+1, prna, prnb);
+                    emitTarget(OP, prnop, prna, prnb, prnt, -1);
                 }
                 break;
             case WHEN:
@@ -292,9 +330,9 @@ void ICtoTC(){
                 int regb = getReg(mover->q->arg2,false);
 
                 char prna[20], prnb[20], prnop[10];
-                if(isdigit(mover->q->arg1[0])) sprintf(prna, "%s", mover->q->arg1);
+                if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-') sprintf(prna, "%s", mover->q->arg1);
                 else sprintf(prna, "R%d", rega+1);
-                if(isdigit(mover->q->arg2[0])) sprintf(prnb, "%s", mover->q->arg2);
+                if(isdigit(mover->q->arg2[0]) || mover->q->arg2[0]=='-') sprintf(prnb, "%s", mover->q->arg2);
                 else sprintf(prnb, "R%d", regb+1);
                 switch(mover->q->op[0]){
                     case '!': sprintf(prnop, "JEQ"); break;
@@ -309,18 +347,60 @@ void ICtoTC(){
                     }
                 }
                 freeAllRegs();
-                printf("%s %s %s %d\n", prnop, prna, prnb, -1);
+                emitTarget(JCOND, prnop, prna, prnb, NULL, mover->q->label);
                 break;
             case WHILE:
                 // GOTO L
                 freeAllRegs();
-                printf("JMP %d\n", -1);
+                emitTarget(JUMP, NULL, NULL, NULL, NULL, mover->q->label);
                 break;
         }
 
         mover = mover->next;
         ins++;
     }
+
+    leaderMap[instr] = targetinstr+1;
+}
+
+void identifyTargetLeaders(){
+    targetLeaders = (bool*)calloc(targetinstr+1, sizeof(bool));
+    for(int i=1;i<=instr;i++){
+        if(leaders[i]) targetLeaders[leaderMap[i]]=true;
+    }
+}
+
+void TCGen(){
+    identifyTargetLeaders();
+    quadArray* mover = TQA;
+    int tins = 0, block=0;
+
+    FILE* fp = fopen("tc.txt","w");
+    while(mover){
+        tins++;
+        if(targetLeaders[tins]) fprintf(fp, "\nBlock %d\n",++block);
+        fprintf(fp, "\t%d\t: ",tins);
+
+        switch(mover->q->type){
+            case LDST:
+                fprintf(fp, "%s %s %s\n", mover->q->op, mover->q->arg1, mover->q->arg2);
+                break;
+            case OP:
+                fprintf(fp, "%s %s %s %s\n", mover->q->op, mover->q->res, mover->q->arg1, mover->q->arg2);
+                break;
+            case JCOND:
+                mover->q->label = leaderMap[mover->q->label];
+                fprintf(fp, "%s %s %s %d\n", mover->q->op, mover->q->arg1, mover->q->arg2, mover->q->label);
+                break;
+            case JUMP:
+                mover->q->label = leaderMap[mover->q->label];
+                fprintf(fp, "%s %d\n", "JMP", mover->q->label);
+                break;
+        }
+        mover = mover->next;
+    }
+
+    fprintf(fp, "\n\t%d\t:\t",targetinstr+1);
 }
 
 int main(){
@@ -330,4 +410,5 @@ int main(){
     RB = (reg*)malloc(RSIZE*sizeof(reg));
 
     ICtoTC();
+    TCGen();
 }
