@@ -1,13 +1,17 @@
 #include "prog.yy.c"
 #include "prog.tab.c"
+#include <setjmp.h>
 
-// char* addTemp(){
-//     char* tmp = (char*)malloc(10*sizeof(char));
-//     sfprintf(fp, tmp,"$%d",++tmpno);
-//     addSym(tmp);
-//     return tmp;
-// }
+static jmp_buf parseEnv;
+void throwError(char *err)
+{
+    fprintf(stderr, "*** Error at line %d: %s\n", yylineno, err);
+    longjmp(parseEnv, 1);
+}
 
+/* Symbol Table */
+
+// Find a symbol in the symbol table
 sym* findSym(char *id){
     sym* mover = ST;
     while(mover!=NULL){
@@ -17,6 +21,7 @@ sym* findSym(char *id){
     return NULL;
 }
 
+// Add a symbol to the symbol table
 void addSym(char* id){
     sym* S = findSym(id);
     if(S!=NULL) return;
@@ -36,6 +41,9 @@ void addSym(char* id){
     }
 }
 
+/* Intermediate Code Generation*/
+
+// Emit a quadruple
 void emit(int type, char* op, char* arg1, char* arg2, char* res){
     instr++;
     quadArray* arr = (quadArray*)malloc(sizeof(quadArray));
@@ -59,21 +67,10 @@ void emit(int type, char* op, char* arg1, char* arg2, char* res){
     }
 }
 
-// int size(){
-//     int sz=0;
-//     quadArray* mover= QA;
-//     while(mover){
-//         sz++;
-//         mover=mover->next;
-//     }
-//     return sz;
-// }
-
+// Backpatch a quadruple
 void backpatch(int where, int label){
     quadArray* mover = QA;
     int ins = 1;
-    // fprintf(fp, "\n%d\t%d",where,label);
-    // fprintf(fp, "\n%d\n",size());
 
     while(mover){
         if(ins==where){
@@ -85,6 +82,28 @@ void backpatch(int where, int label){
     }
 }
 
+// Identify leaders in intermediate code
+void identifyLeaders(){
+    quadArray* mover = QA;
+    leaders = (bool*)calloc(instr+1, sizeof(bool));
+
+    leaders[1] = true;
+    int ins = 1;
+
+    while(mover){
+        switch(mover->q->type){
+            case WHEN:
+            case WHILE:
+                leaders[ins+1]=true;
+                leaders[mover->q->label]=true;
+                break;
+        }
+        mover = mover->next;
+        ins++;
+    }
+}
+
+// Print the intermediate code
 void ICGen(){
     identifyLeaders();
     quadArray* mover = QA;
@@ -114,26 +133,9 @@ void ICGen(){
     fprintf(fp, "\n\t%d\t:\t",instr);
 }
 
-void identifyLeaders(){
-    quadArray* mover = QA;
-    leaders = (bool*)calloc(instr+1, sizeof(bool));
+/* Target Code Generation */
 
-    leaders[1] = true;
-    int ins = 1;
-
-    while(mover){
-        switch(mover->q->type){
-            case WHEN:
-            case WHILE:
-                leaders[ins+1]=true;
-                leaders[mover->q->label]=true;
-                break;
-        }
-        mover = mover->next;
-        ins++;
-    }
-}
-
+// Free register descriptor
 void freeDesc(descriptor* desc, int regno){
     if(desc==NULL) return;
     desc->symbol->regno = -1;
@@ -149,18 +151,21 @@ void freeDesc(descriptor* desc, int regno){
     free(desc);
 }
 
+// Free a register
 void freeReg(int regno){
     RB[regno].score = 0;
     freeDesc(RB[regno].desc, regno);
     RB[regno].desc = NULL;
 }
 
+// Free all registers
 void freeAllRegs(){
     for(int i=0;i<RSIZE;i++){
         freeReg(i);
     }
 }
 
+// Load a symbol into a register
 void loadReg(int regno, sym* S){
     /*
     LD R, x
@@ -172,11 +177,13 @@ void loadReg(int regno, sym* S){
     S->regno = regno;
 }
 
+// Allocate a register for a symbol
 void allocateReg(int regno, sym* S){
     addDesc(regno, S);
     RB[regno].score = 1;
 }
 
+// Get a suitable register for a symbol
 int getReg(char* name, bool lhs){
     if(isdigit(name[0]) || name[0]=='-') return -1;
 
@@ -217,12 +224,14 @@ int getReg(char* name, bool lhs){
     }
 }
 
+// Check if a symbol is in a reg descriptor
 bool checkDesc(descriptor* desc, char* name){
     if(desc==NULL) return false;
     if(!strcmp(desc->symbol->id, name)) return true;
     return checkDesc(desc->next, name);
 }
 
+// Add a symbol to a reg descriptor
 void addDesc(int regno, sym* S){
     descriptor* d = (descriptor*)malloc(sizeof(descriptor));
     d->symbol = S;
@@ -230,6 +239,7 @@ void addDesc(int regno, sym* S){
     RB[regno].desc = d;
 }
 
+// Remove a symbol from a reg descriptor
 void removeDesc(int regno, sym* S){
     descriptor* mover = RB[regno].desc;
     descriptor* prev = NULL;
@@ -245,6 +255,7 @@ void removeDesc(int regno, sym* S){
     }
 }
 
+// Emit a target code quadruple
 void emitTarget(int type, char* op, char* arg1, char* arg2, char* res, int label){
     targetinstr++;
     quadArray* arr = (quadArray*)malloc(sizeof(quadArray));
@@ -268,19 +279,21 @@ void emitTarget(int type, char* op, char* arg1, char* arg2, char* res, int label
     }
 }
 
+// Convert intermediate code to target code
 void ICtoTC(){
     quadArray* mover = QA;
     int ins = 1;
-    leaderMap = (int*)malloc((instr+1)*sizeof(int));
+    insMap = (int*)malloc((instr+1)*sizeof(int));
     while(mover){
         if(leaders[ins]){
             freeAllRegs();
-            leaderMap[ins] = targetinstr+1;
         }
+        insMap[ins] = targetinstr+1;
         switch(mover->q->type){
             case EQ:
                 // Set operation T = A
                 if(mover->q->op==NULL){
+                    sym* S = findSym(mover->q->res);
                     if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-'){
                         // A is a constant
                         int regt = getReg(mover->q->res,true);
@@ -291,13 +304,12 @@ void ICtoTC(){
                     else{
                         // A is a variable or temporary
                         int rega = getReg(mover->q->arg1,false);
-                        sym* S = findSym(mover->q->res);
                         if(S->regno!=-1) removeDesc(S->regno, S);
                         S->regno = rega;
                         RB[rega].score++;
-                        S->stored = false;
                         addDesc(rega, S);
                     }
+                    S->stored = false;
                 }
                 else{
                     // OP T A B
@@ -340,11 +352,11 @@ void ICtoTC(){
                     case '<': switch(mover->q->op[1]){
                         case '=': sprintf(prnop, "JGT"); break;
                         default: sprintf(prnop, "JGE"); break;
-                    }
+                    } break;
                     case '>': switch(mover->q->op[1]){
                         case '=': sprintf(prnop, "JLT"); break;
                         default: sprintf(prnop, "JLE"); break;
-                    }
+                    } break;
                 }
                 freeAllRegs();
                 emitTarget(JCOND, prnop, prna, prnb, NULL, mover->q->label);
@@ -360,16 +372,19 @@ void ICtoTC(){
         ins++;
     }
 
-    leaderMap[instr] = targetinstr+1;
+    freeAllRegs();
+    insMap[instr] = targetinstr+1;
 }
 
+// Identify target code leaders
 void identifyTargetLeaders(){
     targetLeaders = (bool*)calloc(targetinstr+1, sizeof(bool));
     for(int i=1;i<=instr;i++){
-        if(leaders[i]) targetLeaders[leaderMap[i]]=true;
+        if(leaders[i]) targetLeaders[insMap[i]]=true;
     }
 }
 
+// Print the target code
 void TCGen(){
     identifyTargetLeaders();
     quadArray* mover = TQA;
@@ -389,11 +404,11 @@ void TCGen(){
                 fprintf(fp, "%s %s %s %s\n", mover->q->op, mover->q->res, mover->q->arg1, mover->q->arg2);
                 break;
             case JCOND:
-                mover->q->label = leaderMap[mover->q->label];
+                mover->q->label = insMap[mover->q->label];
                 fprintf(fp, "%s %s %s %d\n", mover->q->op, mover->q->arg1, mover->q->arg2, mover->q->label);
                 break;
             case JUMP:
-                mover->q->label = leaderMap[mover->q->label];
+                mover->q->label = insMap[mover->q->label];
                 fprintf(fp, "%s %d\n", "JMP", mover->q->label);
                 break;
         }
@@ -404,11 +419,20 @@ void TCGen(){
 }
 
 int main(){
-    yyparse();
-    ICGen();
+    if(setjmp(parseEnv)==0){
+        yyparse();
+        ICGen();
 
-    RB = (reg*)malloc(RSIZE*sizeof(reg));
+        RB = (reg*)malloc(RSIZE*sizeof(reg));
 
-    ICtoTC();
-    TCGen();
+        ICtoTC();
+        TCGen();
+
+        printf("+++ Code Generation Successful\n");
+        printf("+++ Intermediate Code generated in ic.txt\n");
+        printf("+++ Target Code generated in tc.txt\n");
+    }
+    else{
+        printf("--- Code Generation Failed\n");
+    }
 }

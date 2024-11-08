@@ -40,6 +40,7 @@
         struct descriptor_* desc;
     } reg;
 
+    void throwError(char *);
     
     void addSym(char*);
     struct sym_* findSym(char*);
@@ -66,7 +67,7 @@
     struct quadArray_* QA = NULL;
     struct quadArray_* TQA = NULL;
     bool* leaders = NULL;
-    int* leaderMap = NULL;
+    int* insMap = NULL;
     bool* targetLeaders = NULL;
     struct reg_* RB = NULL;
     
@@ -146,9 +147,9 @@ bool
     ;
 
 atom
-    : IDEN  {if(findSym($1)==NULL) yyerror("Error: Undefined variable\n");}
-    | NUMB
-    | expr
+    : IDEN  {if(findSym($1)==NULL) yyerror("Undefined variable"); $$ = $1;}
+    | NUMB  {$$ = $1;}
+    | expr  {$$ = $1;}
     ;
 
 oper
@@ -175,5 +176,5 @@ M   :   {$$ = instr;}
 
 void yyerror (char * err)
 {
-    printf("%s",err);
+    throwError(err);
 }
