@@ -29,7 +29,8 @@ void addSym(char* id){
     S = (sym*)malloc(sizeof(sym));
     S->id = strdup(id);
     S->regno = -1;
-    S->stored = false;
+    S->stored = true;
+    S->live = true;
 
     sym* mover = ST;
     if(mover==NULL){
@@ -187,11 +188,11 @@ void allocateReg(int regno, sym* S){
 int getReg(char* name, bool lhs){
     if(isdigit(name[0]) || name[0]=='-') return -1;
 
-    // 1. check if symbol is already in a register
+    // 1. Check if symbol is already in a register
     sym* S = findSym(name);
     if(S->regno!=-1) return S->regno;
     
-    // 2. check if register is free
+    // 2. Check if any register is free
     for(int i=0;i<RSIZE;i++){
         if(RB[i].desc==NULL){
             loadReg(i, S);
@@ -204,12 +205,41 @@ int getReg(char* name, bool lhs){
         }
     }
 
-    // 3. check if any register is dead (all the variables and temporaries stored in that register have latest values in memory)
+    // 3. Check if any register is dead (all the variables and temporaries stored in that register have latest values in memory)
     for(int i=0; i<RSIZE; i++){
         bool dead = true;
         descriptor* mover = RB[i].desc;
         while(mover){
-            dead = dead && mover->symbol->stored;
+            if(!mover->symbol->stored){
+                dead = false;
+                break;
+            }
+            mover = mover->next;
+        }
+        if(dead){
+            loadReg(i, S);
+            if(!lhs && name[0]!='$'){
+                char prnt[20];
+                sprintf(prnt, "R%d", i+1);
+                emitTarget(LDST, "LD", prnt, name, NULL, -1);
+            }
+            return i;
+        }
+    }
+
+    // 4. Check if there's any reg cintaining only temporaries, neither of which will be used later
+    for(int i=0; i<RSIZE; i++){
+        bool dead = true;
+        descriptor* mover = RB[i].desc;
+        while(mover){
+            if(mover->symbol->id[0]!='$'){
+                dead = false;
+                break;
+            }
+            else if(mover->symbol->live){
+                dead = false;
+                break;
+            }
             mover = mover->next;
         }
         if(dead){
@@ -308,6 +338,7 @@ void ICtoTC(){
                         S->regno = rega;
                         RB[rega].score++;
                         addDesc(rega, S);
+                        if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
                     }
                     S->stored = false;
                 }
@@ -315,6 +346,10 @@ void ICtoTC(){
                     // OP T A B
                     int rega = getReg(mover->q->arg1,false);
                     int regb = getReg(mover->q->arg2,false);
+
+                    if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
+                    if(mover->q->arg2[0]=='$') findSym(mover->q->arg2)->live = false;
+
                     int regt = getReg(mover->q->res,true);
                     sym* S = findSym(mover->q->res);
                     S->stored = false;
@@ -340,6 +375,9 @@ void ICtoTC(){
                 // IFFALSE A OP B GOTO L
                 int rega = getReg(mover->q->arg1,false);
                 int regb = getReg(mover->q->arg2,false);
+
+                if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
+                if(mover->q->arg2[0]=='$') findSym(mover->q->arg2)->live = false;
 
                 char prna[20], prnb[20], prnop[10];
                 if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-') sprintf(prna, "%s", mover->q->arg1);

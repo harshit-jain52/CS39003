@@ -28,6 +28,7 @@
         struct sym_* next;
         int regno;
         bool stored;
+        bool live;
     } sym;
 
     typedef struct descriptor_{
