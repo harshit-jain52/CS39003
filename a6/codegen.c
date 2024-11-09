@@ -172,7 +172,7 @@ void freeDesc(descriptor* desc, int regno){
         if(desc->symbol->id[0]!='$'){
             char prnt[20];
             sprintf(prnt, "R%d", regno+1);
-            emitTarget(LDST, "ST", desc->symbol->id, prnt, NULL, -1);
+            emitTarget(LDST, "ST", prnt, NULL, desc->symbol->id, -1);
         }
         desc->symbol->stored = true;
     }
@@ -227,7 +227,7 @@ int getReg(char* name, bool lhs){
             if(!lhs && name[0]!='$'){
                 char prnt[20];
                 sprintf(prnt, "R%d", i+1);
-                emitTarget(LDST, "LD", prnt, name, NULL, -1);
+                emitTarget(LDST, "LD", name, NULL, prnt, -1);
             }
             return i;
         }
@@ -253,7 +253,7 @@ int getReg(char* name, bool lhs){
             if(!lhs && name[0]!='$'){
                 char prnt[20];
                 sprintf(prnt, "R%d", i+1);
-                emitTarget(LDST, "LD", prnt, name, NULL, -1);
+                emitTarget(LDST, "LD", name, NULL, prnt, -1);
             }
             return i;
         }
@@ -284,7 +284,7 @@ int getReg(char* name, bool lhs){
         if(!lhs && name[0]!='$'){
             char prnt[20];
             sprintf(prnt, "R%d", minreg+1);
-            emitTarget(LDST, "LD", prnt, name, NULL, -1);
+            emitTarget(LDST, "LD", name, NULL, prnt, -1);
         }
         return minreg;
     }
@@ -368,7 +368,7 @@ void ICtoTC(){
                         int regt = getReg(mover->q->res,true);
                         char prnt[20];
                         sprintf(prnt, "R%d", regt+1);
-                        emitTarget(LDST, "LDI", prnt, mover->q->arg1, NULL, -1);
+                        emitTarget(LDST, "LDI", mover->q->arg1, NULL, prnt, -1);
                     }    
                     else{
                         // A is a variable or temporary
@@ -474,7 +474,7 @@ void TCGen(){
 
         switch(mover->q->type){
             case LDST:
-                fprintf(fp, "%s %s %s\n", mover->q->op, mover->q->arg1, mover->q->arg2);
+                fprintf(fp, "%s %s %s\n", mover->q->op, mover->q->res, mover->q->arg1);
                 break;
             case OP:
                 fprintf(fp, "%s %s %s %s\n", mover->q->op, mover->q->res, mover->q->arg1, mover->q->arg2);
