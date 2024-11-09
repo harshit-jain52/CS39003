@@ -4,10 +4,19 @@
 #include <limits.h>
 
 static jmp_buf parseEnv;
+
+/* Utility Functions*/
+
+// Error handling
 void throwError(char *err)
 {
     fprintf(stderr, "*** Error at line %d: %s\n", yylineno, err);
     longjmp(parseEnv, 1);
+}
+
+// Check if an argument is a number
+bool isConst(char *str){
+    return (isdigit(str[0]) || str[0]=='-' || str[0]=='+');
 }
 
 /* Symbol Table */
@@ -26,20 +35,38 @@ sym* findSym(char *id){
 void addSym(char* id){
     sym* S = findSym(id);
     if(S!=NULL) return;
+    int off = 0;
 
     S = (sym*)malloc(sizeof(sym));
     S->id = strdup(id);
     S->regno = -1;
     S->stored = true;
     S->live = true;
+    S->next = NULL;
 
     sym* mover = ST;
     if(mover==NULL){
+        S->offset = 0;
         ST = S;
     }
     else{
-        while(mover->next != NULL) mover = mover->next;
+        while(mover->next != NULL) {
+            mover = mover->next;
+            off += INTSIZE;
+        }
+        S->offset = off+INTSIZE;
         mover->next=S;
+    }
+}
+
+void printSymTable(){
+    FILE* fp = fopen("symtable.txt","w");
+    sym* mover = ST;
+    fprintf(fp, "%-35s %s\n", "Symbol", "Offset");
+    fprintf(fp, "-------------------------------------------\n");
+    while (mover) {
+        fprintf(fp, "%-35s %d\n", mover->id, mover->offset);
+        mover = mover->next;
     }
 }
 
@@ -187,7 +214,7 @@ void allocateReg(int regno, sym* S){
 
 // Get a suitable register for a symbol
 int getReg(char* name, bool lhs){
-    if(isdigit(name[0]) || name[0]=='-') return -1;
+    if(isConst(name)) return -1;
 
     // 1. Check if symbol is already in a register
     sym* S = findSym(name);
@@ -233,7 +260,6 @@ int getReg(char* name, bool lhs){
     }
 
     // 4. Find the register with the lowest score and non-live temporaries
-
     int minscore = INT_MAX;
     int minreg = -1;
     for(int i=0;i<RSIZE;i++){
@@ -337,7 +363,7 @@ void ICtoTC(){
                 // Set operation T = A
                 if(mover->q->op==NULL){
                     sym* S = findSym(mover->q->res);
-                    if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-'){
+                    if(isConst(mover->q->arg1)){
                         // A is a constant
                         int regt = getReg(mover->q->res,true);
                         char prnt[20];
@@ -367,9 +393,9 @@ void ICtoTC(){
                     S->stored = false;
                     
                     char prna[20], prnb[20], prnt[20], prnop[10];
-                    if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-') sprintf(prna, "%s", mover->q->arg1);
+                    if(rega==-1) sprintf(prna, "%s", mover->q->arg1);
                     else sprintf(prna, "R%d", rega+1);
-                    if(isdigit(mover->q->arg2[0]) || mover->q->arg2[0]=='-') sprintf(prnb, "%s", mover->q->arg2);
+                    if(regb==-1) sprintf(prnb, "%s", mover->q->arg2);
                     else sprintf(prnb, "R%d", regb+1);
                     switch(mover->q->op[0]){
                         case '+': sprintf(prnop, "ADD"); break;
@@ -392,9 +418,9 @@ void ICtoTC(){
                 if(mover->q->arg2[0]=='$') findSym(mover->q->arg2)->live = false;
 
                 char prna[20], prnb[20], prnop[10];
-                if(isdigit(mover->q->arg1[0]) || mover->q->arg1[0]=='-') sprintf(prna, "%s", mover->q->arg1);
+                if(rega==-1) sprintf(prna, "%s", mover->q->arg1);
                 else sprintf(prna, "R%d", rega+1);
-                if(isdigit(mover->q->arg2[0]) || mover->q->arg2[0]=='-') sprintf(prnb, "%s", mover->q->arg2);
+                if(regb==-1) sprintf(prnb, "%s", mover->q->arg2);
                 else sprintf(prnb, "R%d", regb+1);
                 switch(mover->q->op[0]){
                     case '!': sprintf(prnop, "JEQ"); break;
@@ -471,18 +497,22 @@ void TCGen(){
 int main(){
     if(setjmp(parseEnv)==0){
         yyparse();
+        printf("+++ Parsing Successful\n");
+
+        printSymTable();
+        printf("+++ Symbol Table generated in symtable.txt\n");
+
         ICGen();
+        printf("+++ Intermediate Code generated in ic.txt\n");
 
         RB = (reg*)malloc(RSIZE*sizeof(reg));
-
         ICtoTC();
         TCGen();
+        printf("+++ Target Code generated in tc.txt\n");
 
         printf("+++ Code Generation Successful\n");
-        printf("+++ Intermediate Code generated in ic.txt\n");
-        printf("+++ Target Code generated in tc.txt\n");
     }
     else{
-        printf("--- Code Generation Failed\n");
+        printf("--- Process Failed\n");
     }
 }

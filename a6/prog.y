@@ -9,6 +9,8 @@
     #define RSIZE 5
     #endif
 
+    #define INTSIZE 4
+    
     extern int yylex();
     extern int yylineno;
     void yyerror ( char * );
@@ -26,6 +28,7 @@
     typedef struct sym_{
         char* id;
         struct sym_* next;
+        int offset;
         int regno;
         bool stored;
         bool live;
@@ -42,6 +45,7 @@
     } reg;
 
     void throwError(char *);
+    bool isConst(char *);
     
     void addSym(char*);
     struct sym_* findSym(char*);

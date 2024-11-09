@@ -7,4 +7,4 @@ run: all
 	./icgen < sample.txt
 
 clean:
-	-rm -f *.tab.* *.yy.c icgen ic.txt tc.txt
+	-rm -f *.tab.* *.yy.c icgen ic.txt tc.txt symtable.txt
