@@ -6,25 +6,28 @@
     #include <ctype.h>
 
     #ifndef RSIZE
-    #define RSIZE 5
+    #define RSIZE 5     // Number of registers
     #endif
 
-    #define INTSIZE 4
+    #define INTSIZE 4   // Size of signed integer
     
     extern int yylex();
     extern int yylineno;
     void yyerror ( char * );
     
+    // Quadruple
     typedef struct quad_{
         int type, label;
         char *op, *arg1, *arg2, *res;
     } quad;
 
+    // Quad Array
     typedef struct quadArray_{
         struct quad_* q;
         struct quadArray_* next;
     } quadArray;
 
+    // Symbol for Symbol Table
     typedef struct sym_{
         char* id;
         struct sym_* next;
@@ -34,47 +37,50 @@
         bool live;
     } sym;
 
+    // Descriptor for Register Descriptor
     typedef struct descriptor_{
         struct sym_* symbol;
         struct descriptor_* next;
     } descriptor;
 
+    // Register
     typedef struct reg_{
         int score;
         struct descriptor_* desc;
     } reg;
 
-    void throwError(char *);
-    bool isConst(char *);
+    void throwError(char *);                        // Error handling
+    bool isConst(char *);                           // Check if a string is a constant
     
-    void addSym(char*);
-    struct sym_* findSym(char*);
-    void emit(int, char*, char*, char*, char*);
-    void backpatch(int, int);
-    void ICGen();
-    void identifyLeaders();
+    void addSym(char*);                             // Add a symbol to the symbol table
+    struct sym_* findSym(char*);                    // Find a symbol in the symbol table
 
-    void freeAllRegs();
-    void freeReg(int);
-    void freeDesc(struct descriptor_*, int);
-    void allocateReg(int, struct sym_*);
-    void addDesc(int, struct sym_*);
+    void emit(int, char*, char*, char*, char*);     // Emit a quadruple
+    void backpatch(int, int);                       // Backpatch a label in quadruple
+    void identifyLeaders();                         // Identify leaders of basic blocks in intermediate code
+    void ICGen();                                   // Generate Intermediate Code
 
-    void ICtoTC();
-    void emitTarget(int, char*, char*, char*, char*, int);
-    void TCGen();
-    void identifyTargetLeaders();
+    void freeAllRegs();                             // Free all registers
+    void freeReg(int);                              // Free a register
+    void freeDesc(struct descriptor_*, int);        // Free a register descriptor
+    void allocateReg(int, struct sym_*);            // Allocate a register for a symbol
+    void addDesc(int, struct sym_*);                // Add a symbol to a register descriptor
+    void ICtoTC();                                  // Intermediate Code to Target Code
 
-    int tmpno=0;
-    int instr=0;
-    int targetinstr=0;
-    struct sym_* ST = NULL;
-    struct quadArray_* QA = NULL;
-    struct quadArray_* TQA = NULL;
-    bool* leaders = NULL;
-    int* insMap = NULL;
-    bool* targetLeaders = NULL;
-    struct reg_* RB = NULL;
+    void emitTarget(int, char*, char*, char*, char*, int);  // Emit a target quadruple
+    void identifyTargetLeaders();                   // Identify leaders of target code
+    void TCGen();                                   // Generate Target Code
+
+    int tmpno=0;                    // Temporary variable number
+    int instr=0;                    // Instruction number in intermediate code
+    int targetinstr=0;              // Instruction number in target code
+    struct sym_* ST = NULL;         // Symbol Table
+    struct quadArray_* QA = NULL;   // Intermediate Quadruple Array
+    struct quadArray_* TQA = NULL;  // Target Quadruple Array
+    bool* leaders = NULL;           // Leaders of basic blocks in intermediate code
+    int* insMap = NULL;             // Map of intermediate code instructions to target code instructions
+    bool* targetLeaders = NULL;     // Leaders of basic blocks in target code
+    struct reg_* RB = NULL;         // Register Bank
     
 %}
 
@@ -86,7 +92,7 @@
 %token '+' '-' '*' '/' '%' EQ NE LT GT LE GE
 %token <text> IDEN NUMB
 %token SET WHEN LOOP WHILE
-%token LDST OP JCOND JUMP
+%token LDST OP JCOND JUMP   // Not used for parsing, used for target code generation
 
 %type list stmt asgn cond loop program
 %type <text> atom oper expr reln bool
@@ -95,6 +101,7 @@
 
 %%
 
+// Dummy Start
 program
     : list  {instr++;}
     ;
@@ -152,7 +159,11 @@ bool
     ;
 
 atom
-    : IDEN  {if(findSym($1)==NULL) yyerror("Undefined variable"); $$ = $1;}
+    : IDEN
+    {
+        if(findSym($1)==NULL) yyerror("Undefined variable");
+        $$ = $1;
+    }
     | NUMB  {$$ = $1;}
     | expr  {$$ = $1;}
     ;
@@ -174,6 +185,7 @@ reln
     | GE    {$$ = strdup(">=");}
     ;
 
+// Marker non-terminal for backpatching
 M   :   {$$ = instr;}
     ;
 
