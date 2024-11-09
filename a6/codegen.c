@@ -1,6 +1,7 @@
 #include "prog.yy.c"
 #include "prog.tab.c"
 #include <setjmp.h>
+#include <limits.h>
 
 static jmp_buf parseEnv;
 void throwError(char *err)
@@ -181,7 +182,7 @@ void loadReg(int regno, sym* S){
 // Allocate a register for a symbol
 void allocateReg(int regno, sym* S){
     addDesc(regno, S);
-    RB[regno].score = 1;
+    RB[regno].score = (S->id[0]=='$')?0:1;
 }
 
 // Get a suitable register for a symbol
@@ -205,12 +206,16 @@ int getReg(char* name, bool lhs){
         }
     }
 
-    // 3. Check if any register is dead (all the variables and temporaries stored in that register have latest values in memory)
+    // 3. Check if any register is dead (all the variables stored in that register have latest values in memory, and temporaries are not live)
     for(int i=0; i<RSIZE; i++){
         bool dead = true;
         descriptor* mover = RB[i].desc;
         while(mover){
-            if(!mover->symbol->stored){
+            if(mover->symbol->id[0]=='$' && mover->symbol->live){
+                dead = false;
+                break;
+            }
+            else if(!mover->symbol->stored){
                 dead = false;
                 break;
             }
@@ -227,31 +232,38 @@ int getReg(char* name, bool lhs){
         }
     }
 
-    // 4. Check if there's any reg cintaining only temporaries, neither of which will be used later
-    for(int i=0; i<RSIZE; i++){
-        bool dead = true;
-        descriptor* mover = RB[i].desc;
-        while(mover){
-            if(mover->symbol->id[0]!='$'){
-                dead = false;
-                break;
+    // 4. Find the register with the lowest score and non-live temporaries
+
+    int minscore = INT_MAX;
+    int minreg = -1;
+    for(int i=0;i<RSIZE;i++){
+        if(RB[i].score<minscore){
+            bool dead = true;
+            descriptor* mover = RB[i].desc;
+            while(mover){
+                if(mover->symbol->id[0]=='$' && mover->symbol->live){
+                    dead = false;
+                    break;
+                }
+                mover = mover->next;
             }
-            else if(mover->symbol->live){
-                dead = false;
-                break;
+            if(dead){
+                minscore = RB[i].score;
+                minreg = i;
             }
-            mover = mover->next;
-        }
-        if(dead){
-            loadReg(i, S);
-            if(!lhs && name[0]!='$'){
-                char prnt[20];
-                sprintf(prnt, "R%d", i+1);
-                emitTarget(LDST, "LD", prnt, name, NULL, -1);
-            }
-            return i;
         }
     }
+    if(minreg != -1){
+        loadReg(minreg, S);
+        if(!lhs && name[0]!='$'){
+            char prnt[20];
+            sprintf(prnt, "R%d", minreg+1);
+            emitTarget(LDST, "LD", prnt, name, NULL, -1);
+        }
+        return minreg;
+    }
+
+    yyerror("Out of registers"); // This should never happen
 }
 
 // Check if a symbol is in a reg descriptor
@@ -267,6 +279,7 @@ void addDesc(int regno, sym* S){
     d->symbol = S;
     d->next = RB[regno].desc;
     RB[regno].desc = d;
+    RB[regno].score += (S->id[0]=='$')?0:1;
 }
 
 // Remove a symbol from a reg descriptor
@@ -336,7 +349,6 @@ void ICtoTC(){
                         int rega = getReg(mover->q->arg1,false);
                         if(S->regno!=-1) removeDesc(S->regno, S);
                         S->regno = rega;
-                        RB[rega].score++;
                         addDesc(rega, S);
                         if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
                     }
