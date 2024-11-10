@@ -292,13 +292,6 @@ int getReg(char* name, bool lhs){
     yyerror("Out of registers"); // This should never happen
 }
 
-// Check if a symbol is in a reg descriptor
-bool checkDesc(descriptor* desc, char* name){
-    if(desc==NULL) return false;
-    if(!strcmp(desc->symbol->id, name)) return true;
-    return checkDesc(desc->next, name);
-}
-
 // Add a symbol to a reg descriptor
 void addDesc(int regno, sym* S){
     descriptor* d = (descriptor*)malloc(sizeof(descriptor));
@@ -494,7 +487,9 @@ void TCGen(){
     fprintf(fp, "\n\t%d\t:\t",targetinstr+1);
 }
 
-int main(){
+int main(int argc, char *argv[]) {
+    if (argc > 1) RSIZE = atoi(argv[1]);
+    
     if(setjmp(parseEnv)==0){
         yyparse();
         printf("+++ Parsing Successful\n");
@@ -504,7 +499,8 @@ int main(){
 
         ICGen();
         printf("+++ Intermediate Code generated in ic.txt\n");
-
+        
+        printf("+++ %d registers available\n", RSIZE);
         RB = (reg*)malloc(RSIZE*sizeof(reg));
         ICtoTC();
         TCGen();

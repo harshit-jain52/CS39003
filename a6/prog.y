@@ -5,10 +5,6 @@
     #include <stdbool.h>
     #include <ctype.h>
 
-    #ifndef RSIZE
-    #define RSIZE 5     // Number of registers
-    #endif
-
     #define INTSIZE 4   // Size of signed integer
     
     extern int yylex();
@@ -81,7 +77,7 @@
     int* insMap = NULL;             // Map of intermediate code instructions to target code instructions
     bool* targetLeaders = NULL;     // Leaders of basic blocks in target code
     struct reg_* RB = NULL;         // Register Bank
-    
+    int RSIZE = 5;                  // No. of registers available, default 5
 %}
 
 %union {
