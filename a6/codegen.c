@@ -517,16 +517,17 @@ void TCGen(){
 void clearSymTable(sym* S){
     if(S==NULL) return;
     clearSymTable(S->next);
+    free(S->id);
     free(S);
 }
 
 // Clear the quadruple
 void clearQuad(quad* q){
     if(q==NULL) return;
-    free(q->op);
-    free(q->arg1);
-    free(q->arg2);
-    free(q->res);
+    if(q->op) free(q->op);
+    if(q->arg1) free(q->arg1);
+    if(q->arg2) free(q->arg2);
+    if(q->res) free(q->res);
     free(q);
 }
 
