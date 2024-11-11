@@ -169,7 +169,7 @@ void freeDesc(descriptor* desc, int regno){
     if(desc==NULL) return;
     desc->symbol->regno = -1;
     if(!desc->symbol->stored){
-        if(desc->symbol->id[0]!='$'){
+        if(desc->symbol->id[0]!='$' || desc->symbol->live){
             char prnt[20];
             sprintf(prnt, "R%d", regno+1);
             emitTarget(LDST, "ST", prnt, NULL, desc->symbol->id, -1);
@@ -209,12 +209,22 @@ void loadReg(int regno, sym* S){
 // Allocate a register for a symbol
 void allocateReg(int regno, sym* S){
     addDesc(regno, S);
-    RB[regno].score = (S->id[0]=='$')?0:1;
+    RB[regno].score = 1;
+}
+
+// Kill a temporary
+void killTemp(char* name, int regno){
+    if(name[0]!='$') return;
+    sym* S = findSym(name);
+    S->live = false;
+    S->regno = -1;
+    RB[regno].score--;
 }
 
 // Get a suitable register for a symbol
-int getReg(char* name, bool lhs){
+int getReg(char* name, bool lhs, int cantTake){
     if(isConst(name)) return -1;
+
 
     // 1. Check if symbol is already in a register
     sym* S = findSym(name);
@@ -224,7 +234,7 @@ int getReg(char* name, bool lhs){
     for(int i=0;i<RSIZE;i++){
         if(RB[i].desc==NULL){
             loadReg(i, S);
-            if(!lhs && name[0]!='$'){
+            if(!lhs){
                 char prnt[20];
                 sprintf(prnt, "R%d", i+1);
                 emitTarget(LDST, "LD", name, NULL, prnt, -1);
@@ -250,7 +260,7 @@ int getReg(char* name, bool lhs){
         }
         if(dead){
             loadReg(i, S);
-            if(!lhs && name[0]!='$'){
+            if(!lhs){
                 char prnt[20];
                 sprintf(prnt, "R%d", i+1);
                 emitTarget(LDST, "LD", name, NULL, prnt, -1);
@@ -259,29 +269,41 @@ int getReg(char* name, bool lhs){
         }
     }
 
-    // 4. Find the register with the lowest score and non-live temporaries
+    // 4. Check if any register contains only temporaries, neither of which are live
+    for(int i=0;i<RSIZE;i++){
+        bool dead = true;
+        descriptor* mover = RB[i].desc;
+        while(mover){
+            if(mover->symbol->id[0]!='$' || mover->symbol->live){
+                dead = false;
+                break;
+            }
+            mover = mover->next;
+        }
+        if(dead){
+            loadReg(i, S);
+            if(!lhs){
+                char prnt[20];
+                sprintf(prnt, "R%d", i+1);
+                emitTarget(LDST, "LD", name, NULL, prnt, -1);
+            }
+            return i;
+        }
+    }
+
+    // 5. Find the register with the lowest score
     int minscore = INT_MAX;
     int minreg = -1;
     for(int i=0;i<RSIZE;i++){
+        if(i==cantTake) continue;
         if(RB[i].score<minscore){
-            bool dead = true;
-            descriptor* mover = RB[i].desc;
-            while(mover){
-                if(mover->symbol->id[0]=='$' && mover->symbol->live){
-                    dead = false;
-                    break;
-                }
-                mover = mover->next;
-            }
-            if(dead){
-                minscore = RB[i].score;
-                minreg = i;
-            }
+            minscore = RB[i].score;
+            minreg = i;
         }
     }
     if(minreg != -1){
         loadReg(minreg, S);
-        if(!lhs && name[0]!='$'){
+        if(!lhs){
             char prnt[20];
             sprintf(prnt, "R%d", minreg+1);
             emitTarget(LDST, "LD", name, NULL, prnt, -1);
@@ -298,7 +320,7 @@ void addDesc(int regno, sym* S){
     d->symbol = S;
     d->next = RB[regno].desc;
     RB[regno].desc = d;
-    RB[regno].score += (S->id[0]=='$')?0:1;
+    RB[regno].score++;
 }
 
 // Remove a symbol from a reg descriptor
@@ -358,30 +380,30 @@ void ICtoTC(){
                     sym* S = findSym(mover->q->res);
                     if(isConst(mover->q->arg1)){
                         // A is a constant
-                        int regt = getReg(mover->q->res,true);
+                        int regt = getReg(mover->q->res,true,-1);
                         char prnt[20];
                         sprintf(prnt, "R%d", regt+1);
                         emitTarget(LDST, "LDI", mover->q->arg1, NULL, prnt, -1);
                     }    
                     else{
                         // A is a variable or temporary
-                        int rega = getReg(mover->q->arg1,false);
+                        int rega = getReg(mover->q->arg1,false,-1);
                         if(S->regno!=-1) removeDesc(S->regno, S);
                         S->regno = rega;
                         addDesc(rega, S);
-                        if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
+                        killTemp(mover->q->arg1, rega);
                     }
                     S->stored = false;
                 }
                 else{
-                    // OP T A B
-                    int rega = getReg(mover->q->arg1,false);
-                    int regb = getReg(mover->q->arg2,false);
+                    // Arithmetic Operation T =  A OP B
+                    int rega = getReg(mover->q->arg1,false,-1);
+                    int regb = getReg(mover->q->arg2,false,rega);
 
-                    if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
-                    if(mover->q->arg2[0]=='$') findSym(mover->q->arg2)->live = false;
+                    killTemp(mover->q->arg1, rega);
+                    killTemp(mover->q->arg2, regb);
 
-                    int regt = getReg(mover->q->res,true);
+                    int regt = getReg(mover->q->res,true,-1);
                     sym* S = findSym(mover->q->res);
                     S->stored = false;
                     
@@ -403,12 +425,12 @@ void ICtoTC(){
                 }
                 break;
             case WHEN:
-                // IFFALSE A OP B GOTO L
-                int rega = getReg(mover->q->arg1,false);
-                int regb = getReg(mover->q->arg2,false);
+                // Conditional Jump IFFALSE A OP B GOTO L
+                int rega = getReg(mover->q->arg1,false,-1);
+                int regb = getReg(mover->q->arg2,false,rega);
 
-                if(mover->q->arg1[0]=='$') findSym(mover->q->arg1)->live = false;
-                if(mover->q->arg2[0]=='$') findSym(mover->q->arg2)->live = false;
+                killTemp(mover->q->arg1, rega);
+                killTemp(mover->q->arg2, regb);
 
                 char prna[20], prnb[20], prnop[10];
                 if(rega==-1) sprintf(prna, "%s", mover->q->arg1);
@@ -431,7 +453,7 @@ void ICtoTC(){
                 emitTarget(JCOND, prnop, prna, prnb, NULL, mover->q->label);
                 break;
             case WHILE:
-                // GOTO L
+                // Unconditional Jump GOTO L
                 freeAllRegs();
                 emitTarget(JUMP, NULL, NULL, NULL, NULL, mover->q->label);
                 break;

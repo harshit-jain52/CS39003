@@ -59,8 +59,10 @@
     void freeAllRegs();                             // Free all registers
     void freeReg(int);                              // Free a register
     void freeDesc(struct descriptor_*, int);        // Free a register descriptor
+    void killTemp(char* name, int regno);           // Kill a temporary variable
     void allocateReg(int, struct sym_*);            // Allocate a register for a symbol
     void addDesc(int, struct sym_*);                // Add a symbol to a register descriptor
+    int getReg(char* name, bool lhs, int cantTake); // Get a register for a symbol
     void ICtoTC();                                  // Intermediate Code to Target Code
 
     void emitTarget(int, char*, char*, char*, char*, int);  // Emit a target quadruple
