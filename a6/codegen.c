@@ -487,26 +487,70 @@ void TCGen(){
     fprintf(fp, "\n\t%d\t:\t",targetinstr+1);
 }
 
+/* Cleanup */
+
+// Clear the symbol table
+void clearSymTable(sym* S){
+    if(S==NULL) return;
+    clearSymTable(S->next);
+    free(S);
+}
+
+// Clear the quadruple
+void clearQuad(quad* q){
+    if(q==NULL) return;
+    free(q->op);
+    free(q->arg1);
+    free(q->arg2);
+    free(q->res);
+    free(q);
+}
+
+// Clear the quadruple array
+void clearQuadArray(quadArray* arr){
+    if(arr==NULL) return;
+    clearQuadArray(arr->next);
+    clearQuad(arr->q);
+    free(arr);
+}
+
+// Cleanup master function
+void cleanup(){
+    clearSymTable(ST);
+    clearQuadArray(QA);
+    clearQuadArray(TQA);
+    free(insMap);
+    free(leaders);
+    free(targetLeaders);
+    free(RB);
+}
+
+/* Main */
 int main(int argc, char *argv[]) {
-    if (argc > 1) RSIZE = atoi(argv[1]);
+
+    if (argc > 1) RSIZE = atoi(argv[1]); // Overwrite the default register bank size if provided
     
     if(setjmp(parseEnv)==0){
+        // Parsing
         yyparse();
         printf("+++ Parsing Successful\n");
 
         printSymTable();
         printf("+++ Symbol Table generated in symtable.txt\n");
 
+        // Intermediate Code Generation
         ICGen();
         printf("+++ Intermediate Code generated in ic.txt\n");
         
+        // Target Code Generation
         printf("+++ %d registers available\n", RSIZE);
         RB = (reg*)malloc(RSIZE*sizeof(reg));
         ICtoTC();
         TCGen();
         printf("+++ Target Code generated in tc.txt\n");
 
-        printf("+++ Code Generation Successful\n");
+        // Cleanup
+        cleanup();
     }
     else{
         printf("--- Process Failed\n");

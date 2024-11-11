@@ -67,6 +67,11 @@
     void identifyTargetLeaders();                   // Identify leaders of target code
     void TCGen();                                   // Generate Target Code
 
+    void clearSymTable(struct sym_*);               // Clear the symbol table
+    void clearQuad(struct quad_* q);                // Clear a quadruple
+    void clearQuadArray(struct quadArray_* arr);    // Clear a quadruple array
+    void cleanup();                                 // Deallocate allocated memory
+
     int tmpno=0;                    // Temporary variable number
     int instr=0;                    // Instruction number in intermediate code
     int targetinstr=0;              // Instruction number in target code
