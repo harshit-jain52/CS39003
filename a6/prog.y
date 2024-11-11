@@ -164,7 +164,8 @@ bool
 atom
     : IDEN
     {
-        if(findSym($1)==NULL) yyerror("Undefined variable");
+        // if(findSym($1)==NULL) yyerror("Undefined variable");
+        if(findSym($1)==NULL) addSym($1);
         $$ = $1;
     }
     | NUMB  {$$ = $1;}

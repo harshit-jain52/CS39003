@@ -245,6 +245,7 @@ int getReg(char* name, bool lhs, int cantTake){
 
     // 3. Check if any register is dead (all the variables stored in that register have latest values in memory, and temporaries are not live)
     for(int i=0; i<RSIZE; i++){
+        if(i==cantTake) continue;
         bool dead = true;
         descriptor* mover = RB[i].desc;
         while(mover){
@@ -271,6 +272,7 @@ int getReg(char* name, bool lhs, int cantTake){
 
     // 4. Check if any register contains only temporaries, neither of which are live
     for(int i=0;i<RSIZE;i++){
+        if(i==cantTake) continue;
         bool dead = true;
         descriptor* mover = RB[i].desc;
         while(mover){
