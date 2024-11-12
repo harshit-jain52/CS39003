@@ -334,6 +334,7 @@ void removeDesc(int regno, sym* S){
             if(prev==NULL) RB[regno].desc = mover->next;
             else prev->next = mover->next;
             free(mover);
+            RB[regno].score--;
             return;
         }
         prev = mover;
